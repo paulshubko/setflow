@@ -1,0 +1,1809 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SetFlow</title>
+<meta name="description" content="Трекер тренувань для залу: дні A/B/C, ваги, таймери, прогрес">
+<meta name="theme-color" content="#111216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SetFlow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+html{-webkit-text-size-adjust:100%;}
+:root{padding-top:env(safe-area-inset-top,0px);}
+img{max-width:100%;}
+[hidden]{display:none!important;}
+/* ---------- Fonts ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* ---------- Tokens ---------- */
+:root{
+  --bg:#f6f5f2;
+  --surface:#ffffff;
+  --surface-2:#eeece6;
+  --surface-3:#e4e1d8;
+  --border:#dedad1;
+  --text:#17181b;
+  --text-dim:#666a73;
+  --text-faint:#9498a0;
+  --accent:#e14a1f;
+  --accent-ink:#ffffff;
+  --success:#1a9d5a;
+  --success-bg:#e3f5ea;
+  --warn:#b6790a;
+  --warn-bg:#faf0dc;
+  --shadow:0 1px 2px rgba(20,20,20,.06),0 6px 20px rgba(20,20,20,.05);
+  --radius-s:10px;
+  --radius-m:16px;
+  --radius-l:22px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111216;
+    --surface:#1b1d23;
+    --surface-2:#24262e;
+    --surface-3:#2d303a;
+    --border:#34373f;
+    --text:#eef0f3;
+    --text-dim:#9a9eab;
+    --text-faint:#6d717d;
+    --accent:#ff6a3d;
+    --accent-ink:#181004;
+    --success:#3ddc84;
+    --success-bg:#123024;
+    --warn:#f4bd4e;
+    --warn-bg:#332a10;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111216;
+  --surface:#1b1d23;
+  --surface-2:#24262e;
+  --surface-3:#2d303a;
+  --border:#34373f;
+  --text:#eef0f3;
+  --text-dim:#9a9eab;
+  --text-faint:#6d717d;
+  --accent:#ff6a3d;
+  --accent-ink:#181004;
+  --success:#3ddc84;
+  --success-bg:#123024;
+  --warn:#f4bd4e;
+  --warn-bg:#332a10;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;}
+html{background:var(--bg);}
+body::before{
+  content:"";position:fixed;top:0;left:0;right:0;z-index:25;
+  height:env(safe-area-inset-top,0px);background:var(--bg);
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  padding-inline:16px;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
+  max-width:560px;
+  margin:0 auto;
+  -webkit-tap-highlight-color:transparent;
+}
+h1,h2,h3{
+  font-family:'Archivo',sans-serif;
+  font-weight:800;
+  text-wrap:balance;
+  margin:0;
+}
+.num{font-variant-numeric:tabular-nums;}
+button{font-family:inherit;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky;
+  top:env(safe-area-inset-top,0px);
+  z-index:20;
+  background:var(--bg);
+  padding-block:14px 10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-bottom:1px solid transparent;
+}
+.topbar.scrolled{border-bottom-color:var(--border);}
+.back-btn{
+  width:38px;height:38px;border-radius:50%;
+  border:1px solid var(--border);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text);
+  flex:none;
+}
+.topbar h1{font-size:19px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.topbar .sub{font-size:12px;color:var(--text-dim);font-weight:600;}
+
+/* ---------- Screens ---------- */
+.screen{display:none;padding-bottom:24px;}
+.screen.active{display:block;animation:fade .25s ease;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion: reduce){.screen.active{animation:none;}}
+
+/* ---------- Home: day cards ---------- */
+.day-grid{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
+.day-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-l);
+  padding:18px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-align:left;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+}
+.day-card.next::before{
+  content:"";
+  position:absolute;inset:0 auto 0 0;
+  width:4px;background:var(--accent);
+}
+.day-letter{
+  font-family:'Archivo',sans-serif;
+  font-weight:800;font-size:26px;
+  width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);color:var(--text);
+  flex:none;
+}
+.day-card.next .day-letter{background:var(--accent);color:var(--accent-ink);}
+.day-body{flex:1;min-width:0;}
+.day-title{font-size:16px;font-weight:800;font-family:'Archivo',sans-serif;}
+.day-desc{font-size:13px;color:var(--text-dim);margin-top:2px;}
+.day-meta{font-size:12px;color:var(--text-faint);margin-top:6px;font-weight:600;}
+.chip-next{
+  font-size:11px;font-weight:800;letter-spacing:.04em;
+  background:var(--accent);color:var(--accent-ink);
+  padding:3px 9px;border-radius:20px;text-transform:uppercase;
+  flex:none;
+}
+
+.section-label{
+  font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-faint);margin:26px 0 10px;
+}
+.util-row{display:flex;gap:10px;margin-top:4px;}
+.util-btn{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-m);padding:14px 12px;font-size:13px;font-weight:700;
+  color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.util-btn svg{width:20px;height:20px;stroke:var(--text-dim);}
+
+/* ---------- Checklist (warmup/cooldown) ---------- */
+.check-list{display:flex;flex-direction:column;gap:10px;margin-top:14px;}
+.check-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-m);padding:14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.check-main{
+  display:flex;align-items:flex-start;gap:12px;
+  text-align:left;width:100%;background:none;border:none;padding:0;color:var(--text);
+}
+.check-actions{display:flex;flex-wrap:wrap;gap:8px;padding-left:36px;}
+.mini-btn,.mini-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 12px;border-radius:10px;font-size:12.5px;font-weight:700;
+  border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+  text-decoration:none;
+}
+.mini-btn.timer{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.mini-btn svg,.mini-link svg{width:14px;height:14px;flex:none;}
+
+.media-row{display:flex;gap:10px;margin-top:12px;}
+.media-link{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 10px;border-radius:var(--radius-m);
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-size:14px;font-weight:800;text-decoration:none;
+}
+.media-link.video{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.media-link svg{width:18px;height:18px;flex:none;}
+.media-note{font-size:11.5px;color:var(--text-faint);margin-top:8px;text-align:center;}
+.swipe-hint{font-size:11.5px;color:var(--text-faint);text-align:center;margin-top:6px;font-weight:600;}
+.tech-quick{display:flex;gap:8px;margin-top:10px;}
+.tech-quick .mini-link{flex:1;justify-content:center;}
+.check-box{
+  width:24px;height:24px;border-radius:8px;border:2px solid var(--border);
+  flex:none;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);
+}
+.check-item.done .check-box{background:var(--success);border-color:var(--success);}
+.check-box svg{width:14px;height:14px;stroke:var(--accent-ink);opacity:0;stroke-width:3;}
+.check-item.done .check-box svg{opacity:1;}
+.check-text b{display:block;font-size:14.5px;font-weight:700;}
+.check-item.done .check-text b{color:var(--text-dim);text-decoration:line-through;text-decoration-color:var(--text-faint);}
+.check-text span{font-size:12.5px;color:var(--text-dim);line-height:1.4;}
+
+.big-cta{
+  width:100%;margin-top:22px;
+  background:var(--accent);color:var(--accent-ink);
+  border:none;border-radius:var(--radius-m);
+  padding:16px;font-size:15.5px;font-weight:800;font-family:'Archivo',sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.big-cta:disabled{opacity:.4;}
+.ghost-cta{
+  width:100%;margin-top:10px;background:transparent;color:var(--text-dim);
+  border:1px solid var(--border);border-radius:var(--radius-m);
+  padding:13px;font-size:14px;font-weight:700;
+}
+
+/* ---------- Exercise list ---------- */
+.progress-dots{display:flex;gap:5px;margin:2px 0 4px;}
+.progress-dots i{flex:1;height:4px;border-radius:2px;background:var(--surface-3);}
+.progress-dots i.done{background:var(--success);}
+.progress-dots i.current{background:var(--accent);}
+
+.ex-list{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+.superset-label{
+  font-size:11px;font-weight:800;color:var(--text-faint);letter-spacing:.05em;
+  margin:14px 0 -2px;
+}
+.ex-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-m);padding:13px 14px;
+  width:100%;text-align:left;
+}
+.ex-row .ring{
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex:none;
+  font-size:12px;font-weight:800;color:var(--text-dim);
+}
+.ex-row.complete .ring{background:var(--success);border-color:var(--success);color:var(--accent-ink);}
+.ex-row .name{font-size:14.5px;font-weight:700;flex:1;}
+.ex-row .meta{font-size:12px;color:var(--text-dim);font-weight:600;}
+.ex-row .chev{color:var(--text-faint);flex:none;}
+
+/* ---------- Exercise detail ---------- */
+.ex-hero{margin-top:4px;}
+.ex-hero h2{font-size:23px;}
+.ex-hero .scheme{font-size:13px;color:var(--text-dim);font-weight:700;margin-top:4px;}
+
+.tabs{display:flex;gap:6px;margin:16px 0 4px;background:var(--surface-2);padding:4px;border-radius:12px;}
+.tab{flex:1;padding:9px 4px;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--text-dim);text-align:center;background:none;border:none;}
+.tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+.cue-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:14px;margin-top:10px;}
+.cue-block h4{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;}
+.cue-block ul{margin:0;padding-left:18px;font-size:13.5px;line-height:1.55;color:var(--text);}
+.cue-block ul li{margin-bottom:4px;}
+.cue-block.warn h4{color:var(--warn);}
+.cue-block.warn{background:var(--warn-bg);border-color:transparent;}
+
+.set-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);
+  padding:16px;margin-top:12px;
+}
+.set-card.done{border-color:var(--success);}
+.set-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.set-head .tag{font-size:12px;font-weight:800;color:var(--text-dim);}
+.set-head .tag b{color:var(--text);}
+.feel-check{width:22px;height:22px;color:var(--success);opacity:0;}
+.set-card.done .feel-check{opacity:1;}
+
+.stack{display:flex;flex-direction:column;gap:14px;}
+.field-label{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-faint);margin-bottom:8px;display:block;}
+
+.weight-value{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-bottom:10px;}
+.weight-value .n{font-family:'Archivo',sans-serif;font-size:40px;font-weight:800;}
+.weight-value .u{font-size:14px;color:var(--text-dim);font-weight:700;}
+
+.stepper-row{display:flex;align-items:center;gap:10px;}
+.step-btn{
+  width:46px;height:46px;border-radius:14px;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font-size:20px;font-weight:800;
+  flex:none;display:flex;align-items:center;justify-content:center;
+}
+.chip-row{display:flex;gap:8px;flex:1;overflow-x:auto;scrollbar-width:none;padding:2px;}
+.chip-row::-webkit-scrollbar{display:none;}
+.wchip{
+  flex:none;padding:9px 13px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface-2);font-size:13.5px;font-weight:700;color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.wchip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+.wchip.last{position:relative;}
+
+.reps-row{display:flex;align-items:center;justify-content:center;gap:18px;}
+.reps-row .n{font-family:'Archivo',sans-serif;font-size:34px;font-weight:800;width:64px;text-align:center;}
+
+.feel-row{display:flex;gap:8px;}
+.feel-btn{flex:1;padding:11px 4px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font-size:12.5px;font-weight:700;color:var(--text-dim);}
+.feel-btn.active[data-feel="easy"]{background:var(--success-bg);border-color:var(--success);color:var(--success);}
+.feel-btn.active[data-feel="ok"]{background:var(--surface-3);border-color:var(--text-faint);color:var(--text);}
+.feel-btn.active[data-feel="hard"]{background:var(--warn-bg);border-color:var(--warn);color:var(--warn);}
+
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;}
+.qtag{padding:7px 11px;border-radius:20px;border:1px solid var(--border);background:var(--surface-2);font-size:12px;font-weight:700;color:var(--text-dim);}
+.qtag.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);}
+textarea.comment{
+  width:100%;margin-top:10px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:12px;padding:11px 12px;font-size:13.5px;color:var(--text);font-family:inherit;
+  resize:none;min-height:44px;
+}
+textarea.comment::placeholder{color:var(--text-faint);}
+
+.done-set-btn{
+  width:100%;margin-top:14px;padding:14px;border-radius:var(--radius-m);border:none;
+  background:var(--surface-2);color:var(--text);font-weight:800;font-family:'Archivo',sans-serif;font-size:14.5px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.set-card.done .done-set-btn{background:var(--success-bg);color:var(--success);}
+
+.nav-row{display:flex;gap:10px;margin-top:20px;}
+.nav-row button{flex:1;}
+
+/* ---------- Rest timer ---------- */
+.timer-wrap{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;
+  transform:translateY(110%);transition:transform .3s ease;
+  box-shadow:0 -8px 24px rgba(0,0,0,.12);
+}
+.timer-wrap.show{transform:translateY(0);}
+.timer-ring{width:56px;height:56px;flex:none;position:relative;}
+.timer-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.timer-ring circle{fill:none;stroke-width:5;}
+.timer-ring .bg{stroke:var(--surface-2);}
+.timer-ring .fg{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .3s linear;}
+.timer-ring .t{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+.timer-info{flex:1;min-width:0;}
+.timer-info b{display:block;font-size:13.5px;font-weight:800;}
+.timer-info span{font-size:12px;color:var(--text-dim);}
+.timer-skip{flex:none;background:var(--surface-2);border:none;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:700;color:var(--text);}
+
+/* ---------- Bottom nav ---------- */
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));
+  display:flex;justify-content:center;gap:6px;
+  max-width:560px;margin:0 auto;
+}
+.nav-btn{
+  flex:1;max-width:160px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 4px;border:none;background:none;color:var(--text-faint);font-size:11px;font-weight:700;
+}
+.nav-btn.active{color:var(--accent);}
+.nav-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+/* ---------- Summary ---------- */
+.summary-hero{text-align:center;padding:20px 0 6px;}
+.summary-hero .check{
+  width:64px;height:64px;border-radius:50%;background:var(--success-bg);color:var(--success);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+}
+.summary-hero .check svg{width:32px;height:32px;stroke-width:2.5;}
+.summary-hero h2{font-size:22px;}
+.summary-hero p{font-size:13.5px;color:var(--text-dim);margin-top:6px;}
+.summary-stats{display:flex;gap:10px;margin-top:20px;}
+.stat-tile{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:14px;text-align:center;}
+.stat-tile .n{font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;}
+.stat-tile .l{font-size:11px;color:var(--text-dim);font-weight:700;margin-top:2px;}
+
+/* ---------- Progress screen ---------- */
+.ex-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.ex-pick-chip{padding:9px 13px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:12.5px;font-weight:700;color:var(--text-dim);}
+.ex-pick-chip.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-l);padding:16px;margin-top:14px;}
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.chart-head b{font-size:14.5px;font-weight:800;}
+.chart-head span{font-size:12px;color:var(--text-dim);font-weight:700;}
+canvas{width:100%;display:block;}
+.log-list{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.log-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.log-item .row1{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--text-dim);}
+.log-item .row1 b{color:var(--text);}
+.log-item .cm{font-size:13px;margin-top:4px;color:var(--text);}
+.empty-note{font-size:13px;color:var(--text-faint);text-align:center;padding:30px 10px;}
+
+.export-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-l);padding:16px;margin-top:18px;}
+.export-box h3{font-size:14.5px;}
+.export-box p{font-size:12.5px;color:var(--text-dim);margin-top:5px;line-height:1.5;}
+.copy-fb{font-size:12px;color:var(--success);font-weight:700;margin-top:8px;display:none;}
+.copy-fb.show{display:block;}
+
+.fb-sheet{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;}
+.fb-panel{
+  background:var(--surface);width:100%;max-width:560px;border-radius:22px 22px 0 0;
+  padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));
+}
+.fb-panel h3{font-size:18px;}
+.fb-panel p{font-size:13px;color:var(--text-dim);margin:6px 0 0;line-height:1.5;}
+.storage-status{
+  border-radius:var(--radius-m);padding:12px 14px;margin-top:14px;
+  font-size:12.5px;line-height:1.45;font-weight:600;
+}
+.storage-status.ok{background:var(--success-bg);color:var(--success);}
+.storage-status.warn{background:var(--warn-bg);color:var(--warn);}
+.storage-status.bad{background:var(--warn-bg);color:var(--accent);}
+.import-confirm{background:var(--surface-2);border-radius:12px;padding:12px;margin-top:12px;}
+.import-confirm p{margin:0;color:var(--text);}
+.test-card{
+  background:var(--surface-2);border-radius:var(--radius-m);padding:14px;margin-top:14px;
+  font-size:13px;line-height:1.5;color:var(--text-dim);
+}
+.test-card b{color:var(--text);}
+.toast{
+  position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);
+  background:var(--text);color:var(--bg);padding:10px 18px;border-radius:20px;font-size:13px;font-weight:700;
+  opacity:0;pointer-events:none;transition:all .25s ease;z-index:60;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ HOME ============ -->
+<section class="screen active" id="screen-home">
+  <div class="topbar"><h1>SetFlow</h1></div>
+  <p style="font-size:13px;color:var(--text-dim);margin-top:-4px;">Три дні на тиждень · рекомпозиція</p>
+  <div class="storage-status ok" id="storageStatus">Завантаження…</div>
+
+  <div class="section-label">Тренування</div>
+  <div class="day-grid" id="dayGrid"></div>
+
+  <div class="section-label">Інше</div>
+  <div class="util-row">
+    <button class="util-btn" onclick="goto('progress')">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 19V9M12 19V5M20 19v-7"/></svg>
+      Прогрес
+    </button>
+    <button class="util-btn" onclick="openExport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+      Аналіз з Claude
+    </button>
+    <button class="util-btn" onclick="openBackup()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+      Резервна копія
+    </button>
+  </div>
+
+<div class="fb-sheet" id="backupSheet" hidden>
+  <div class="fb-panel">
+    <h3>Резервна копія</h3>
+    <p>Збережи файл з усією історією в «Файли» або надішли собі в Telegram. Знадобиться, якщо зміниш телефон або очистиш Safari.</p>
+    <button class="big-cta" onclick="exportBackup()">Зберегти копію</button>
+    <button class="ghost-cta" onclick="document.getElementById('importFile').click()">Відновити з файлу</button>
+    <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(this)">
+    <div class="import-confirm" id="importConfirm" hidden>
+      <p id="importInfo"></p>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="big-cta" style="margin:0;flex:2" onclick="applyImport()">Замінити дані</button>
+        <button class="ghost-cta" style="margin:0;flex:1" onclick="cancelImport()">Скасувати</button>
+      </div>
+    </div>
+    <button class="ghost-cta" onclick="closeBackup()">Закрити</button>
+  </div>
+</div>
+</section>
+
+<!-- ============ WARMUP ============ -->
+<section class="screen" id="screen-warmup">
+  <div class="topbar">
+    <button class="back-btn" onclick="goto('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><h1 id="warmupTitle" style="font-size:17px;">Розминка</h1><div class="sub" id="warmupSub"></div></div>
+  </div>
+  <div class="check-list" id="warmupList"></div>
+  <button class="big-cta" id="warmupNext" onclick="finishWarmup()">До вправ</button>
+</section>
+
+<!-- ============ EXERCISE LIST ============ -->
+<section class="screen" id="screen-list">
+  <div class="topbar">
+    <button class="back-btn" onclick="goto('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><h1 id="listTitle" style="font-size:17px;">День</h1><div class="sub" id="listSub"></div></div>
+  </div>
+  <div class="progress-dots" id="listDots"></div>
+  <div class="ex-list" id="exList"></div>
+  <button class="big-cta" id="listCooldownBtn" onclick="goto('cooldown')">До заминки</button>
+</section>
+
+<!-- ============ EXERCISE DETAIL ============ -->
+<section class="screen" id="screen-exercise">
+  <div class="topbar">
+    <button class="back-btn" onclick="goto('list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><h1 id="exTitle" style="font-size:17px;">Вправа</h1><div class="sub" id="exSuperset"></div></div>
+  </div>
+
+  <div class="ex-hero">
+    <div class="scheme" id="exScheme"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="do" onclick="switchTab('do')">Виконання</button>
+    <button class="tab" data-tab="tech" onclick="switchTab('tech')">Техніка</button>
+  </div>
+
+  <div class="swipe-hint">Свайп вліво, щоб глянути техніку</div>
+  <div class="tab-panel active" data-panel="do">
+    <div class="tech-quick" id="doQuickLinks"></div>
+    <div id="setCardsWrap"></div>
+    <div class="nav-row">
+      <button class="ghost-cta" onclick="prevExercise()">← Попередня</button>
+      <button class="big-cta" style="margin-top:0" onclick="nextExercise()">Наступна →</button>
+    </div>
+  </div>
+
+  <div class="tab-panel" data-panel="tech">
+    <div class="media-row" id="techMedia"></div>
+    <div class="media-note">Відкриється в новій вкладці. Повертайся в SetFlow з перемикача програм, прогрес не загубиться.</div>
+    <div class="cue-block"><h4>Підготовка</h4><ul id="techSetup"></ul></div>
+    <div class="cue-block"><h4>Виконання</h4><ul id="techSteps"></ul></div>
+    <div class="cue-block warn"><h4>Типові помилки</h4><ul id="techErrors"></ul></div>
+  </div>
+</section>
+
+<!-- ============ COOLDOWN ============ -->
+<section class="screen" id="screen-cooldown">
+  <div class="topbar">
+    <button class="back-btn" onclick="goto('list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div><h1 style="font-size:17px;">Заминка</h1><div class="sub">5–7 хв розтяжки</div></div>
+  </div>
+  <div class="check-list" id="cooldownList"></div>
+  <button class="big-cta" onclick="finishSession()">Завершити тренування</button>
+</section>
+
+<!-- ============ SUMMARY ============ -->
+<section class="screen" id="screen-summary">
+  <div class="summary-hero">
+    <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+    <h2>Тренування завершено</h2>
+    <p id="summaryDay"></p>
+  </div>
+  <div class="summary-stats">
+    <div class="stat-tile"><div class="n" id="sumSets">0</div><div class="l">Підходів</div></div>
+    <div class="stat-tile"><div class="n" id="sumVolume">0</div><div class="l">Тонаж, кг</div></div>
+    <div class="stat-tile"><div class="n" id="sumStreak">0</div><div class="l">Тренувань поспіль</div></div>
+  </div>
+  <button class="big-cta" onclick="goto('home')">На головну</button>
+</section>
+
+<!-- ============ PROGRESS ============ -->
+<section class="screen" id="screen-progress">
+  <div class="topbar"><button class="back-btn" onclick="goto('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button><h1 style="font-size:17px;">Прогрес</h1></div>
+  <div class="ex-picker" id="exPicker"></div>
+  <div class="chart-card">
+    <div class="chart-head"><b id="chartExName">—</b><span id="chartExRange"></span></div>
+    <canvas id="chart" height="140"></canvas>
+  </div>
+  <div class="section-label">Історія та коментарі</div>
+  <div class="log-list" id="logList"></div>
+
+  <div class="export-box">
+    <h3>Поділитись прогресом зі мною</h3>
+    <p>Скопіюй зведення останніх тренувань і встав у новий чат. Я проаналізую прогрес і запропоную, які вправи варто замінити, щоб не набридало.</p>
+    <button class="big-cta" style="margin-top:12px" onclick="copyExport()">Скопіювати зведення</button>
+    <div class="copy-fb" id="copyFb">Скопійовано ✓</div>
+  </div>
+</section>
+
+<!-- ============ EXPORT MODAL-ish (reuses progress export) ============ -->
+
+<div class="timer-wrap" id="timerBar">
+  <div class="timer-ring">
+    <svg viewBox="0 0 60 60"><circle class="bg" cx="30" cy="30" r="26"/><circle class="fg" id="timerCircle" cx="30" cy="30" r="26" stroke-dasharray="163" stroke-dashoffset="0"/></svg>
+    <div class="t" id="timerText">60</div>
+  </div>
+  <div class="timer-info"><b>Відпочинок</b><span id="timerNote">до наступного підходу</span></div>
+  <button class="timer-skip" onclick="addTime(15)">+15 с</button>
+  <button class="timer-skip" onclick="skipTimer()">Далі</button>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-nav="home" onclick="goto('home')">
+    <svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" stroke-linejoin="round"/></svg>
+    Головна
+  </button>
+  <button class="nav-btn" data-nav="progress" onclick="goto('progress')">
+    <svg viewBox="0 0 24 24"><path d="M4 19V9M12 19V5M20 19v-7" stroke-linecap="round"/></svg>
+    Прогрес
+  </button>
+  <button class="nav-btn" data-nav="feedback" onclick="openFeedback(this)">
+    <svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" stroke-linejoin="round"/></svg>
+    Відгук
+  </button>
+</nav>
+
+<div class="fb-sheet" id="fbSheet" hidden>
+  <div class="fb-panel">
+    <h3>Відгук про SetFlow</h3>
+    <p>Напиши, що зручно, а що ні, скопіюй і надішли Павлу в будь-якому месенджері.</p>
+    <label class="field-label" for="fbText" style="margin-top:12px;">Що зручно, що заважає, чого бракує</label>
+    <textarea class="comment" id="fbText" rows="5" maxlength="2000" placeholder="Наприклад: кнопки ваги зручні, але таймер хочеться довший"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="big-cta" style="margin:0;flex:2" onclick="copyFeedback()">Скопіювати</button>
+      <button class="ghost-cta" style="margin:0;flex:1" onclick="closeFeedback()">Закрити</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   DATA — programs for Day A / B / C
+===================================================================== */
+const DAYS = {
+  A: {
+    label:'День A', title:'Низ тіла + кор', color:'A',
+    warmup:[
+      {t:'Кардіо активація',d:'3–4 хв велотренажер або швидка ходьба в легкому темпі, пульс піднявся, дихання ще спокійне.'},
+      {t:'Кет-кова',d:'На четвереньках: вдих — прогин у попереку і таз вгору, видих — округлення спини. 8–10 повільних циклів.'},
+      {t:'Мах ногою вперед-назад',d:'Тримайся за опору, 10–12 махів на кожну ногу, амплітуда без болю в попереку.'},
+      {t:'Кола тазом',d:'Стоячи, руки на поясі, 8 кіл в кожен бік, повільно й контрольовано.'},
+      {t:'Сідничний місток лежачи',d:'Лежачи, коліна зігнуті, підйом тазу стисканням сідниць. 12–15 повторень, готує сідниці до роботи.'},
+      {t:'Dead bug розминочний',d:'2 підходи по 6 повільних повторень на кожну сторону, без ваги — просто активація кора.'},
+      {t:'Розминочний підхід гоблет-присіду',d:'Порожні руки або легка вага, 8 повторень, щоб відчути патерн руху перед робочими підходами.'}
+    ],
+    cooldown:[
+      {t:'Розтяжка згиначів стегна (пріоритет)',d:'На коліні, таз підкручений, сідниця задньої ноги напружена. 2×30–40 с на кожну сторону.'},
+      {t:'Розтяжка задньої поверхні стегна',d:'Лежачи, рушник під стопою, нога піднята й випрямлена. 2×30 с на кожну ногу.'},
+      {t:'Розтяжка сідниці (фігура 4)',d:'Лежачи на спині, гомілка однієї ноги на стегні іншої, підтягуєш коліно до себе. 2×30 с на сторону.'},
+      {t:'Спокійна ходьба',d:'1 хв повільної ходьби, щоб дихання й пульс прийшли в норму.'}
+    ],
+    supersets:[
+      {label:'A · Присід + стабілізація стегна', ids:['a1_goblet_squat','a2_hip_abduction']},
+      {label:'B · Тяга + антиекстензія кора', ids:['b1_rdl','b2_dead_bug']},
+      {label:'C · Одностороння нога + сідниця', ids:['c1_split_squat','c2_glute_bridge']},
+      {label:'D · Кор', ids:['core_pallof']}
+    ]
+  },
+  B: {
+    label:'День B', title:'Верх тіла', color:'B',
+    warmup:[
+      {t:'Кардіо активація',d:'3–4 хв велотренажер, легкий темп, плечі розслаблені.'},
+      {t:'Кет-кова',d:'8–10 повільних циклів на четвереньках для рухливості грудного відділу.'},
+      {t:'Кола руками',d:'10 кіл вперед і 10 назад кожною рукою, амплітуда поступово більша.'},
+      {t:'Розтяжка грудних у дверях',d:'Передпліччя на одвірку під 90°, легкий крок вперед, 20–30 с на сторону — активує, не тримає довго.'},
+      {t:'Тяга гумки до грудей (band pull-apart)',d:'2×12 повільних повторень, лопатки зводяться в кінці руху — активує заднi дельти й спину.'},
+      {t:'Розминочний підхід жиму',d:'Легкі гантелі або порожні руки, 8 повторень жиму на похилій, щоб відчути траєкторію.'}
+    ],
+    cooldown:[
+      {t:'Розтяжка згиначів стегна напівколінна',d:'2×30 с на сторону — навіть у верхній день корисно для постави.'},
+      {t:'Розтяжка грудних у дверях',d:'30 с на сторону, тримай плече нижче вуха.'},
+      {t:'Розтяжка широчайших біля стійки',d:'Тримаєшся за стійку, відхиляєшся тазом назад, відчуваєш розтяг боку спини. 30 с на сторону.'},
+      {t:'Розтяжка задньої поверхні стегна з рушником',d:'Лежачи, 30 с на кожну ногу — компенсує сидячий день.'}
+    ],
+    supersets:[
+      {label:'A · Груди + спина', ids:['a1_incline_press','a2_row']},
+      {label:'B · Плечі + спина', ids:['b1_shoulder_press','b2_lat_pulldown']},
+      {label:'C · Задня дельта + біцепс', ids:['c1_face_pull','c2_bicep_curl']},
+      {label:'D · Трицепс + кор', ids:['d1_triceps_pushdown','d2_dead_bug']}
+    ]
+  },
+  C: {
+    label:'День C', title:'Все тіло + кардіо', color:'C',
+    warmup:[
+      {t:'Кардіо активація',d:'3–4 хв легкого кардіо на вибір, готуємо тіло до комбінованого навантаження.'},
+      {t:'Кет-кова',d:'8 циклів для хребта.'},
+      {t:'Мах ногою і кола руками',d:'По 10 на кожну сторону — загальна рухливість перед вправами на все тіло.'},
+      {t:'Розминочний підхід жиму ногами',d:'Легка вага, 8 повторень, щоб перевірити налаштування тренажера.'}
+    ],
+    cooldown:[
+      {t:'Розтяжка згиначів стегна (пріоритет)',d:'2×30–40 с на сторону, підкручений таз, сідниця задньої ноги напружена.'},
+      {t:'Розтяжка сідниці (фігура 4)',d:'2×30 с на сторону лежачи на спині.'},
+      {t:'Поза дитини',d:'30–40 с, руки витягнуті вперед, таз до п\'ят — розвантажує поперек після фарбер-волк і жиму ногами.'},
+      {t:'Розтяжка грудних у дверях',d:'20–30 с на сторону.'}
+    ],
+    supersets:[
+      {label:'1 · Ноги + спина', ids:['b1_leg_press','b2_lat_pulldown']},
+      {label:'2 · Спина + груди', ids:['c1_seated_row','c2_pushup']},
+      {label:'3 · Все тіло', ids:['d1_farmers_walk']},
+      {label:'Кардіо · Ейр-байк', ids:['cardio_airbike']}
+    ]
+  }
+};
+
+/* Exercise definitions: technique, set scheme, default weight, type */
+const EX = {
+  a1_goblet_squat:{name:'Гоблет-присід', type:'db', step:2.5, sets:4, repsDefault:9, repsHint:'8–10',
+    setup:['Гантель тримай вертикально обома руками під підборіддям, лікті вниз.','Стопи трохи ширше плечей, носки злегка назовні.'],
+    steps:['Вдих, напруж прес, таз назад і вниз, ніби сідаєш на низький стілець.','Коліна рухаються в напрямку носків, не звалюються всередину.','Опускайся, доки стегна паралельні підлозі або трохи вище.','Видих, підйом через п\'яти, стискаючи сідниці зверху.'],
+    errors:['П\'яти відриваються від підлоги.','Коліна завалюються всередину на підйомі.','Спина округлюється замість нахилу тазом назад.']},
+  a2_hip_abduction:{name:'Відведення стегна лежачи на боці', type:'bw', sets:3, repsDefault:15, repsHint:'15 на сторону',
+    setup:['Лягай на бік, ноги випрямлені, одна на одній, спина у нейтральному положенні.','Опорна рука під головою або перед грудьми для стабільності.'],
+    steps:['Верхню ногу піднімай вгору, не повертаючи таз назад.','Носок дивиться вперед або трохи вниз, не вгору.','Підйом на видиху, повільне опускання на вдиху.'],
+    errors:['Таз відкочується назад, і рух іде замість сідниці поперековим м\'язом.','Занадто швидкий мах замість контрольованого підйому.']},
+  b1_rdl:{name:'Румунська тяга з гантелями', type:'db', step:2.5, sets:3, repsDefault:11, repsHint:'10–12',
+    setup:['Гантелі перед стегнами, хват нейтральний, стопи на ширині таза.','Коліна злегка зігнуті (~15°) і залишаються такими весь рух.'],
+    steps:['Зведи лопатки, напруж прес, гантелі ковзають по стегнах.','Відводь таз назад, корпус нахиляється вперед.','Опускайся, доки відчуваєш натяг задньої поверхні стегна.','Зупинись раніше, ніж поперек почне округлюватися.','Стисни сідниці й поверни таз вперед, не тягни спиною.'],
+    errors:['Округлення попереку — головна причина болю.','Гантелі відходять від ніг.','Згинання колін перетворює рух у присід.']},
+  b2_dead_bug:{name:'Dead bug', type:'bw', sets:3, repsDefault:10, repsHint:'10 на сторону',
+    setup:['Лежачи на спині, руки вгору, коліна зігнуті під 90° над тазом.','Поперек притиснутий до підлоги весь підхід.'],
+    steps:['Видих, повільно випрямляй протилежну руку й ногу до підлоги.','Повернення на вдиху, поперек не відривається.','Чергуй сторони.'],
+    errors:['Поперек відривається від підлоги — це сигнал зменшити амплітуду.','Рух занадто швидкий, кор не встигає працювати.']},
+  c1_split_squat:{name:'Болгарський спліт-присід', type:'bw', sets:3, repsDefault:6, repsHint:'5–6 на ногу',
+    setup:['Спиною до лави (~20–25 см), підйом стопи задньої ноги на лаву.','Передня стопа на відстані одного кроку від лави.','Пальці рук легко на стійці для балансу, без опори вагою.'],
+    steps:['Корпус трохи нахилений вперед (~10–15°).','Опускайся, доки заднє коліно майже торкається підлоги, таз не завалюється вбік.','Підйом через п\'яту передньої ноги, зупиняйся задовго до втрати балансу.'],
+    errors:['Занадто далекий крок тягне пах, занадто близький — навантажує коліно.','Таз хитається вбік — ознака, що стабілізація ще не готова до ваги.']},
+  c2_glute_bridge:{name:'Одноногий сідничний місток', type:'bw', sets:3, repsDefault:9, repsHint:'8–10',
+    setup:['Лежачи, одна стопа на підлозі, друга нога випрямлена вгору.','Руки вздовж тіла для стабільності.'],
+    steps:['Підйом тазу, штовхаючи п\'ятою опорної ноги, сідниця працює, не поперек.','Верхня точка — пряма лінія від коліна до плеча.','Повільне опускання, без падіння тазу.'],
+    errors:['Прогин у попереку замість роботи сідниці.','Опорна стопа занадто далеко або близько — заважає балансу.']},
+  core_pallof:{name:'Pallof press (антиротаційний прес)', type:'cable', step:2.5, sets:3, repsDefault:10, repsHint:'10 на сторону',
+    setup:['Стій боком до блоку/резинки на рівні грудей, ноги на ширині плечей, коліна м\'які.','Тримай рукоять обома руками перед грудьми.'],
+    steps:['Виштовхуй руки вперед, опираючись обертанню тулуба вбік до блоку.','Затримка 1–2 с у витягнутому положенні, корпус нерухомий.','Повільно поверни руки до грудей.'],
+    errors:['Тулуб прокручується в бік блоку — вага завелика.','Затримка дихання замість рівного видиху на витягуванні.']},
+
+  a1_incline_press:{name:'Жим гантелей на похилій', type:'db', step:2.5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Лава під ~30°, лопатки зведені й притиснуті до спинки, стопи міцно на підлозі.','Гантелі стартують над плечима, лікті під ~45° до тулуба.'],
+    steps:['Опускай гантелі до рівня грудей, контрольовано, без відскоку.','Жим вгору по дузі, гантелі майже стикаються над грудьми.','Видих на жимі, вдих на опусканні.'],
+    errors:['Поперек сильно відривається від лави.','Лікті розходяться на 90° — навантажує плечові суглоби.']},
+  a2_row:{name:'Тяга гантелі в упорі однією рукою', type:'db', step:2.5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Коліно й рука опираються на лаву, спина рівна й майже паралельна підлозі.','Гантель у вільній руці, рука випрямлена вниз.'],
+    steps:['Тягни лікоть вгору й назад, лопатка рухається до хребта.','У верхній точці лікоть вище спини, коротка затримка.','Опускання контрольоване, повна амплітуда.'],
+    errors:['Ротація корпусу для допомоги рукою.','Тяга ліктем в сторону замість назад — менше працює спина.']},
+  b1_shoulder_press:{name:'Жим гантелей сидячи', type:'db', step:2.5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Сидячи, спинка під спину, гантелі на рівні плечей, долоні вперед.','Прес напружений, поперек не прогинається у спинку.'],
+    steps:['Жим вгору до майже повного випрямлення рук, не блокуй лікті різко.','Опускання контрольоване до рівня плечей.'],
+    errors:['Сильний прогин у попереку замінює роботу плечей.','Гантелі зводяться попереду замість руху строго вгору.']},
+  b2_lat_pulldown:{name:'Тяга верхнього блоку', type:'cable', step:5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Сидячи, стегна зафіксовані валиками, хват трохи ширше плечей.','Легкий нахил корпусу назад (~10–15°), груди відкриті.'],
+    steps:['Тягни рукоять до верху грудей, лікті йдуть вниз і назад.','Коротка затримка, лопатки зведені.','Повільне повернення до повного розтягу вгорі.'],
+    errors:['Розкачування корпусом для допомоги руками.','Тяга за голову — небезпечно для плечей.']},
+  c1_face_pull:{name:'Тяга канату до обличчя', type:'cable', step:2.5, sets:3, repsDefault:13, repsHint:'12–15',
+    setup:['Блок на рівні очей, канат хватом «молот», трохи назад від стійки.','Лікті на рівні плечей.'],
+    steps:['Тягни канат до обличчя, розводячи кінці в сторони.','У кінці руху великі пальці дивляться назад, лопатки зведені.','Повільне повернення без різкого відскоку.'],
+    errors:['Занадто важка вага змушує тягнути ліктями вниз.','Рух перетворюється на звичайну тягу до грудей замість розведення.']},
+  c2_bicep_curl:{name:'Підйом на біцепс сидячи', type:'db', step:2.5, sets:3, repsDefault:11, repsHint:'10–12',
+    setup:['Сидячи, спина рівна, лікті притиснуті до боків.','Гантелі внизу, долоні вперед.'],
+    steps:['Згинай лікті, піднімаючи гантелі до плечей, лікті нерухомі.','Коротка затримка й стиск біцепса вгорі.','Повільне опускання до повного випрямлення рук.'],
+    errors:['Розгойдування корпусом, щоб закинути вагу.','Лікті йдуть вперед замість того, щоб лишатись біля тулуба.']},
+  d1_triceps_pushdown:{name:'Розгинання рук на блоці', type:'cable', step:2.5, sets:3, repsDefault:12, repsHint:'12',
+    setup:['Стій прямо перед блоком, лікті притиснуті до тулуба, хват канатом чи рукояттю.','Легкий нахил корпусу вперед.'],
+    steps:['Розгинай лікті вниз до майже повного випрямлення, не рухаючи плечима.','Коротка затримка внизу зі стиском трицепса.','Контрольоване повернення, лікті лишаються на місці.'],
+    errors:['Лікті відходять вперед від тулуба.','Використання ваги тіла й нахилу для допомоги руху.']},
+  d2_dead_bug:{name:'Dead bug', type:'bw', sets:3, repsDefault:10, repsHint:'10 на сторону',
+    setup:['Лежачи на спині, руки вгору, коліна зігнуті під 90° над тазом.','Поперек притиснутий до підлоги весь підхід.'],
+    steps:['Видих, повільно випрямляй протилежну руку й ногу до підлоги.','Повернення на вдиху, поперек не відривається.','Чергуй сторони.'],
+    errors:['Поперек відривається від підлоги.','Занадто швидкий темп.']},
+
+  b1_leg_press:{name:'Жим ногами', type:'machine', step:5, sets:3, repsDefault:11, repsHint:'10–12',
+    setup:['Спина й таз щільно притиснуті до спинки, стопи на платформі на ширині плечей.','Коліна на старті під ~90°, не заблоковані повністю на витягу.'],
+    steps:['Штовхай платформу через п\'яти, коліна рухаються по лінії носків.','Не випрямляй коліна повністю у верхній точці — тримай легкий згин.','Контрольоване опускання до вихідного кута.'],
+    errors:['Поперек відривається від спинки внизу руху.','Коліна звалюються всередину під навантаженням.']},
+  c1_seated_row:{name:'Тяга блоку сидячи', type:'cable', step:5, sets:3, repsDefault:11, repsHint:'10–12',
+    setup:['Сидячи, коліна злегка зігнуті, стопи впираються в платформу.','Спина пряма, хват рукояттю на ширині плечей.'],
+    steps:['Тягни рукоять до живота, лікті йдуть назад уздовж тіла.','Лопатки зводяться в кінці руху, коротка затримка.','Повільне повернення з витягом вперед, спина не округлюється.'],
+    errors:['Розгойдування корпусом вперед-назад для допомоги руками.','Округлення спини на витягу вперед.']},
+  c2_pushup:{name:'Віджимання від підлоги', type:'bw', sets:3, repsDefault:10, repsHint:'10',
+    setup:['Долоні трохи ширші за плечі, тіло — пряма лінія від голови до п\'ят.','Прес і сідниці напружені весь підхід.'],
+    steps:['Опускайся, згинаючи лікті під ~45° до тулуба, груди майже торкаються підлоги.','Жим вгору до повного випрямлення рук, лінія тіла не ламається.'],
+    errors:['Таз провисає або задирається вгору.','Голова опускається першою замість руху всього тіла разом.']},
+  d1_farmers_walk:{name:'Фермерська прогулянка', type:'db', step:2.5, sets:3, repsDefault:35, repsHint:'30–40 м', repsUnit:'м',
+    setup:['Гантелі по боках, хват міцний, плечі опущені й відведені назад.','Прес напружений, погляд вперед.'],
+    steps:['Крокуй короткими контрольованими кроками, корпус не хитається.','Дихання рівне, плечі не піднімаються до вух.','Розверни й повернись, якщо простір обмежений.'],
+    errors:['Нахил тулуба в бік важчої руки.','Занадто довгі кроки розхитують корпус.']},
+  cardio_airbike:{name:'Ейр-байк інтервали', type:'cardio', sets:5, repsDefault:20, repsHint:'20 с інтенсивно / 70 с легко', special:'airbike',
+    setup:['Сідло на рівні тазової кістки, коліно злегка зігнуте в нижній точці педалі.','Хват за вертикальні ручки на рівні грудей, нейтральний.'],
+    steps:['1 хв спокійно на вході, дихання рівне.','20 с інтенсивно: ноги й руки працюють разом, інтенсивність 7–8 з 10.','70 с легко, відновлення.','Повтори цикл 5 разів, усі інтервали приблизно однакові за зусиллям.','1 хв спокійно на виході.'],
+    errors:['Перший інтервал на максимум — видихаєшся до кінця.','Горбишся і висиш на кермі всією вагою.','Сідло занизько — коліна підлітають до грудей.']}
+};
+
+/* =====================================================================
+   MEDIA + TIMERS — search queries (English gives better results)
+===================================================================== */
+const EXQ = {
+  a1_goblet_squat:'goblet squat proper form',
+  a2_hip_abduction:'side lying hip abduction exercise',
+  b1_rdl:'dumbbell romanian deadlift form',
+  b2_dead_bug:'dead bug exercise core',
+  c1_split_squat:'bulgarian split squat beginner balance support',
+  c2_glute_bridge:'single leg glute bridge',
+  core_pallof:'pallof press cable',
+  a1_incline_press:'incline dumbbell press 30 degree form',
+  a2_row:'single arm dumbbell row bench',
+  b1_shoulder_press:'seated dumbbell shoulder press form',
+  b2_lat_pulldown:'lat pulldown proper form',
+  c1_face_pull:'cable face pull rope form',
+  c2_bicep_curl:'seated dumbbell bicep curl',
+  d1_triceps_pushdown:'tricep rope pushdown form',
+  d2_dead_bug:'dead bug exercise core',
+  b1_leg_press:'leg press machine proper form',
+  c1_seated_row:'seated cable row form',
+  c2_pushup:'push up proper form',
+  d1_farmers_walk:'farmers walk dumbbells form',
+  cardio_airbike:'air bike assault bike intervals form'
+};
+/* warm-up / cool-down: q = search, sec = seconds per hold, sides = 2 for left/right, rounds */
+const ITEMQ = {
+  'Кардіо активація':{q:'stationary bike warm up', sec:210},
+  'Кет-кова':{q:'cat cow stretch'},
+  'Мах ногою вперед-назад':{q:'leg swings front to back'},
+  'Кола тазом':{q:'standing hip circles'},
+  'Сідничний місток лежачи':{q:'glute bridge exercise'},
+  'Dead bug розминочний':{q:'dead bug exercise'},
+  'Розминочний підхід гоблет-присіду':{q:'goblet squat proper form'},
+  'Кола руками':{q:'arm circles warm up'},
+  'Розтяжка грудних у дверях':{q:'doorway chest stretch', sec:25, sides:2},
+  'Тяга гумки до грудей (band pull-apart)':{q:'band pull apart'},
+  'Розминочний підхід жиму':{q:'incline dumbbell press 30 degree form'},
+  'Мах ногою і кола руками':{q:'leg swings arm circles warm up'},
+  'Розминочний підхід жиму ногами':{q:'leg press machine proper form'},
+  'Розтяжка згиначів стегна (пріоритет)':{q:'half kneeling hip flexor stretch posterior pelvic tilt', sec:35, sides:2, rounds:2},
+  'Розтяжка згиначів стегна напівколінна':{q:'half kneeling hip flexor stretch', sec:30, sides:2, rounds:2},
+  'Розтяжка задньої поверхні стегна':{q:'supine hamstring stretch towel', sec:30, sides:2, rounds:2},
+  'Розтяжка задньої поверхні стегна з рушником':{q:'supine hamstring stretch towel', sec:30, sides:2},
+  'Розтяжка сідниці (фігура 4)':{q:'supine figure four glute stretch', sec:30, sides:2, rounds:2},
+  'Розтяжка широчайших біля стійки':{q:'lat stretch holding rack', sec:30, sides:2},
+  'Поза дитини':{q:'extended child pose stretch', sec:35},
+  'Спокійна ходьба':{sec:60}
+};
+const ytUrl = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q);
+const imgUrl = q => 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_IMG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/></svg>';
+const ICON_TIMER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg>';
+function mediaLinks(q, cls){
+  return `<a class="${cls} video" href="${ytUrl(q)}" target="_blank" rel="noopener">${ICON_PLAY} Відео</a>
+          <a class="${cls}" href="${imgUrl(q)}" target="_blank" rel="noopener">${ICON_IMG} Фото</a>`;
+}
+function fmtSec(s){ return s>=60 ? (Math.floor(s/60)+':'+String(s%60).padStart(2,'0')) : s+' с'; }
+
+/* =====================================================================
+   STATE
+===================================================================== */
+const STORE_KEY = 'setflow.v1';
+let state = loadState();
+
+/* Storage: IndexedDB is the main store, localStorage is a fast mirror.
+   On start both are read and the most recently saved copy wins. */
+function emptyState(){ return { weights:{}, lastDay:{}, history:{}, streak:0, lastSessionDate:null, savedAt:0 }; }
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return emptyState();
+}
+const IDB_NAME='setflow', IDB_STORE='kv';
+let _idb=null;
+function idb(){
+  if(!_idb) _idb = new Promise((res,rej)=>{
+    if(!('indexedDB' in window)) return rej(new Error('no idb'));
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=()=>r.result.createObjectStore(IDB_STORE);
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  });
+  return _idb;
+}
+async function idbGet(key){
+  const db=await idb();
+  return new Promise((res,rej)=>{
+    const q=db.transaction(IDB_STORE).objectStore(IDB_STORE).get(key);
+    q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error);
+  });
+}
+async function idbSet(key,val){
+  const db=await idb();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(val,key);
+    tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+  });
+}
+let storageOk=true;
+function saveState(){
+  state.savedAt=Date.now();
+  const json=JSON.stringify(state);
+  try{ localStorage.setItem(STORE_KEY, json); }catch(e){}
+  idbSet(STORE_KEY, json).then(()=>{ storageOk=true; }).catch(()=>{ storageOk=false; renderStorageStatus(); });
+}
+async function loadFromIdb(){
+  try{
+    const raw=await idbGet(STORE_KEY);
+    if(raw){
+      const fromIdb=JSON.parse(raw);
+      if((fromIdb.savedAt||0) >= (state.savedAt||0)) state=fromIdb;
+    }
+  }catch(e){}
+}
+/* Ask the browser not to clear our data under storage pressure */
+let persisted=null;
+async function requestPersist(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      persisted = await navigator.storage.persisted() || await navigator.storage.persist();
+    }
+  }catch(e){}
+}
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function renderStorageStatus(){
+  const el=document.getElementById('storageStatus');
+  if(!el) return;
+  const sessions=Object.values(state.history).reduce((n,h)=>n+h.length,0);
+  let msg, cls='ok';
+  if(!storageOk){ msg='Не вдалося зберегти дані на телефоні. Зроби резервну копію.'; cls='bad'; }
+  else if(!isStandalone()){ msg='Додай SetFlow на екран Домівки, щоб iPhone точно не стер дані: «Поділитись» → «На екран Домівки».'; cls='warn'; }
+  else { msg=`Дані збережені на телефоні${sessions?` · ${sessions} записів вправ`:''}.`; }
+  el.className='storage-status '+cls;
+  el.textContent=msg;
+}
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+/* =====================================================================
+   NAVIGATION
+===================================================================== */
+let session = null; // {dayKey, exIndex, warmupDone:{}, setLog:{exId:[{weight,reps,feel,comment,done}]}}
+let currentTab='do';
+let timerInterval=null;
+
+function goto(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.nav===name));
+  window.scrollTo(0,0);
+  if(name==='home') renderHome();
+  if(name==='progress') renderProgress();
+}
+
+/* =====================================================================
+   HOME
+===================================================================== */
+function nextDayKey(){
+  const order=['A','B','C'];
+  let last = order.map(k=>({k,d:state.lastDay[k]||''})).sort((a,b)=>a.d.localeCompare(b.d));
+  return last[0].k;
+}
+function renderHome(){
+  const grid=document.getElementById('dayGrid');
+  const next=nextDayKey();
+  grid.innerHTML='';
+  ['A','B','C'].forEach(k=>{
+    const day=DAYS[k];
+    const last=state.lastDay[k];
+    const isNext = k===next;
+    const el=document.createElement('button');
+    el.className='day-card'+(isNext?' next':'');
+    el.onclick=()=>startDay(k);
+    el.innerHTML=`
+      <div class="day-letter">${k}</div>
+      <div class="day-body">
+        <div class="day-title">${day.label} · ${day.title}</div>
+        <div class="day-meta">${last?('Востаннє: '+fmtDate(last)):'Ще не виконано'}</div>
+      </div>
+      ${isNext?'<div class="chip-next">Далі</div>':''}
+    `;
+    grid.appendChild(el);
+  });
+}
+function fmtDate(d){
+  const dt=new Date(d+'T00:00:00');
+  return dt.toLocaleDateString('uk-UA',{day:'numeric',month:'short'});
+}
+
+/* =====================================================================
+   SESSION FLOW
+===================================================================== */
+function startDay(key){
+  session = { dayKey:key, exIndex:0, warmupDone:{}, setLog:{} };
+  const day=DAYS[key];
+  document.getElementById('warmupTitle').textContent = day.label + ' · Розминка';
+  document.getElementById('warmupSub').textContent = day.title;
+  session.cooldownDone = {};
+  renderChecklist(document.getElementById('warmupList'), day.warmup, session.warmupDone);
+  requestWakeLock();
+  saveSession();
+  goto('warmup');
+}
+
+function renderChecklist(list, items, doneMap){
+  list.innerHTML='';
+  items.forEach((item,i)=>{
+    const meta = ITEMQ[item.t] || {};
+    const el=document.createElement('div');
+    el.className='check-item'+(doneMap[i]?' done':'');
+    const timerLabel = meta.sec ? (fmtSec(meta.sec) + (meta.sides?' × 2 сторони':'') + (meta.rounds>1?' × '+meta.rounds:'')) : '';
+    el.innerHTML=`
+      <button class="check-main">
+        <div class="check-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="check-text"><b>${item.t}</b><span>${item.d}</span></div>
+      </button>
+      ${(meta.sec||meta.q)?`<div class="check-actions">
+        ${meta.sec?`<button class="mini-btn timer">${ICON_TIMER} ${timerLabel}</button>`:''}
+        ${meta.q?mediaLinks(meta.q,'mini-link'):''}
+      </div>`:''}`;
+    const setDone = v => { doneMap[i]=v; el.classList.toggle('done', v); saveSession(); };
+    el.querySelector('.check-main').onclick = () => setDone(!doneMap[i]);
+    const tb = el.querySelector('.mini-btn.timer');
+    if(tb) tb.onclick = () => runHoldSequence(item.t, meta, () => setDone(true));
+    list.appendChild(el);
+  });
+}
+
+/* Runs a hold timer: rounds × sides, with a 5 s switch pause between phases */
+function runHoldSequence(title, meta, onFinish){
+  const phases=[];
+  const rounds = meta.rounds||1;
+  for(let r=0;r<rounds;r++){
+    if(meta.sides){ phases.push('Ліва сторона'); phases.push('Права сторона'); }
+    else phases.push(rounds>1?('Раунд '+(r+1)):title);
+  }
+  let idx=0;
+  const next = () => {
+    if(idx>=phases.length){ onFinish(); showToast('Готово: '+title); return; }
+    const label = phases[idx] + (phases.length>1?` (${idx+1}/${phases.length})`:'');
+    const run = () => startRestTimer(meta.sec, label, () => { idx++; next(); }, title);
+    if(idx>0){ startRestTimer(5, 'Змінюй положення', run, 'Підготуйся'); }
+    else run();
+  };
+  next();
+}
+function finishWarmup(){
+  buildExerciseList();
+  goto('list');
+}
+function allExIds(){
+  const day=DAYS[session.dayKey];
+  return day.supersets.flatMap(s=>s.ids);
+}
+function buildExerciseList(){
+  const day=DAYS[session.dayKey];
+  document.getElementById('listTitle').textContent = day.label;
+  document.getElementById('listSub').textContent = day.title;
+  const wrap=document.getElementById('exList');
+  wrap.innerHTML='';
+  day.supersets.forEach(ss=>{
+    const lbl=document.createElement('div');
+    lbl.className='superset-label';
+    lbl.textContent=ss.label;
+    wrap.appendChild(lbl);
+    ss.ids.forEach(id=>{
+      const ex=EX[id];
+      const row=document.createElement('button');
+      row.className='ex-row';
+      row.id='exrow-'+id;
+      row.onclick=()=>openExercise(id);
+      row.innerHTML=`<div class="ring">${ex.sets}</div>
+        <div class="name">${ex.name}</div>
+        <div class="meta">${lastWeightLabel(id)}</div>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>`;
+      wrap.appendChild(row);
+    });
+  });
+  renderDots();
+}
+function lastWeightLabel(id){
+  const ex=EX[id];
+  const w=state.weights[id];
+  if(ex.type==='bw') return ex.repsHint+' повт.';
+  if(!w) return 'вага не задана';
+  return w+' кг';
+}
+function renderDots(){
+  const ids=allExIds();
+  const wrap=document.getElementById('listDots');
+  wrap.innerHTML='';
+  ids.forEach(id=>{
+    const i=document.createElement('i');
+    const log=session.setLog[id];
+    const ex=EX[id];
+    if(log && log.filter(s=>s&&s.done).length>=ex.sets) i.className='done';
+    wrap.appendChild(i);
+  });
+}
+function markRowComplete(id){
+  const row=document.getElementById('exrow-'+id);
+  const log=session.setLog[id]||[];
+  const ex=EX[id];
+  const done=log.filter(s=>s&&s.done).length;
+  if(row){
+    row.classList.toggle('complete', done>=ex.sets);
+    row.querySelector('.ring').textContent = done>=ex.sets ? '' : ex.sets;
+    if(done>=ex.sets){
+      row.querySelector('.ring').innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+    }
+    row.querySelector('.meta').textContent = lastWeightLabel(id);
+  }
+  renderDots();
+}
+
+/* ---------- Exercise detail ---------- */
+function openExercise(id){
+  const ids=allExIds();
+  session.exIndex = ids.indexOf(id);
+  renderExercise();
+  goto('exercise');
+}
+function currentExId(){ return allExIds()[session.exIndex]; }
+function findSuperset(id){
+  const day=DAYS[session.dayKey];
+  return day.supersets.find(s=>s.ids.includes(id));
+}
+function renderExercise(){
+  const id=currentExId();
+  const ex=EX[id];
+  document.getElementById('exTitle').textContent=ex.name;
+  document.getElementById('exSuperset').textContent=findSuperset(id).label;
+  document.getElementById('exScheme').textContent = `${ex.sets} підходи × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
+
+  document.getElementById('techSetup').innerHTML = ex.setup.map(s=>`<li>${s}</li>`).join('');
+  document.getElementById('techSteps').innerHTML = ex.steps.map(s=>`<li>${s}</li>`).join('');
+  document.getElementById('techErrors').innerHTML = ex.errors.map(s=>`<li>${s}</li>`).join('');
+  const q = EXQ[id] || ex.name;
+  document.getElementById('techMedia').innerHTML = mediaLinks(q,'media-link');
+  document.getElementById('doQuickLinks').innerHTML = mediaLinks(q,'mini-link');
+
+  if(!session.setLog[id]){
+    session.setLog[id] = new Array(ex.sets).fill(null).map(()=>({
+      weight: ex.type==='bw'?null:(state.weights[id]||defaultWeight(ex)),
+      reps: ex.repsDefault,
+      feel:'ok', comment:'', done:false
+    }));
+  }
+  renderSetCards(id);
+  switchTab('do');
+}
+/* Starting weights from Pavlo's recorded sessions */
+const START_W = {
+  a1_goblet_squat:15, b1_rdl:12.5, core_pallof:10,
+  a1_incline_press:12.5, a2_row:15, b1_shoulder_press:10, b2_lat_pulldown:40,
+  c1_face_pull:15, c2_bicep_curl:7.5, d1_triceps_pushdown:25,
+  b1_leg_press:50, c1_seated_row:35, d1_farmers_walk:24
+};
+Object.entries(START_W).forEach(([id,w])=>{ if(EX[id]) EX[id].w=w; });
+function defaultWeight(ex){
+  if(ex.w) return ex.w;
+  if(ex.type==='db') return ex.step*2;
+  if(ex.type==='cable') return 15;
+  if(ex.type==='machine') return 20;
+  return 0;
+}
+function switchTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===t));
+  const hint=document.querySelector('#screen-exercise .swipe-hint');
+  if(hint) hint.textContent = t==='do' ? 'Свайп вліво, щоб глянути техніку' : 'Свайп вправо, щоб повернутись до підходів';
+}
+
+function renderSetCards(id){
+  const ex=EX[id];
+  const log=session.setLog[id];
+  const wrap=document.getElementById('setCardsWrap');
+  wrap.innerHTML='';
+
+  if(ex.special==='airbike'){ wrap.appendChild(buildAirbikeCard(id)); return; }
+
+  log.forEach((set,i)=>{
+    wrap.appendChild(buildSetCard(id,ex,set,i));
+  });
+}
+
+function buildSetCard(id,ex,set,i){
+  const card=document.createElement('div');
+  card.className='set-card'+(set.done?' done':'');
+  card.id=`set-${id}-${i}`;
+
+  const isWeighted = ex.type!=='bw';
+  const step = ex.step||2.5;
+
+  card.innerHTML = `
+    <div class="set-head">
+      <div class="tag">Підхід <b>${i+1}</b> / ${ex.sets}</div>
+      <svg class="feel-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <div class="stack">
+      ${isWeighted?`
+      <div>
+        <span class="field-label">Вага</span>
+        <div class="weight-value"><span class="n num" id="wval-${id}-${i}">${set.weight}</span><span class="u">кг</span></div>
+        <div class="stepper-row">
+          <button class="step-btn" onclick="adjWeight('${id}',${i},-${step})">−</button>
+          <div class="chip-row" id="chips-${id}-${i}"></div>
+          <button class="step-btn" onclick="adjWeight('${id}',${i},${step})">+</button>
+        </div>
+      </div>`:''}
+      <div>
+        <span class="field-label">${ex.repsUnit==='м'?'Метри':'Повторення'}</span>
+        <div class="reps-row">
+          <button class="step-btn" onclick="adjReps('${id}',${i},-1)">−</button>
+          <div class="n num" id="rval-${id}-${i}">${set.reps}</div>
+          <button class="step-btn" onclick="adjReps('${id}',${i},1)">+</button>
+        </div>
+      </div>
+      <div>
+        <span class="field-label">Самопочуття</span>
+        <div class="feel-row">
+          <button class="feel-btn ${set.feel==='easy'?'active':''}" data-feel="easy" onclick="setFeel('${id}',${i},'easy')">Легко</button>
+          <button class="feel-btn ${set.feel==='ok'?'active':''}" data-feel="ok" onclick="setFeel('${id}',${i},'ok')">Нормально</button>
+          <button class="feel-btn ${set.feel==='hard'?'active':''}" data-feel="hard" onclick="setFeel('${id}',${i},'hard')">Важко</button>
+        </div>
+        <div class="tag-row" id="tags-${id}-${i}"></div>
+        <textarea class="comment" id="cm-${id}-${i}" placeholder="Коментар до підходу (необов'язково)">${set.comment||''}</textarea>
+      </div>
+    </div>
+    <button class="done-set-btn" id="donebtn-${id}-${i}" onclick="toggleDone('${id}',${i})">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      ${set.done?'Підхід готовий':'Готово'}
+    </button>
+  `;
+
+  setTimeout(()=>{ if(isWeighted) renderChips(id,i); renderTags(id,i); },0);
+  const cm=card.querySelector('.comment');
+  cm.addEventListener('input',()=>{ set.comment=cm.value; saveSession(); });
+
+  return card;
+}
+
+const QUICK_TAGS=['поперек','баланс','легко, додати вагу','техніка пливе','зменшити вагу'];
+function renderChips(id,i){
+  const ex=EX[id]; const set=session.setLog[id][i];
+  const wrap=document.getElementById(`chips-${id}-${i}`);
+  if(!wrap) return;
+  const step=ex.step||2.5;
+  const base = state.weights[id] || set.weight || defaultWeight(ex);
+  const opts=[];
+  for(let d=-2;d<=2;d++){ opts.push(Math.max(step, base + d*step)); }
+  const uniq=[...new Set(opts)].sort((a,b)=>a-b);
+  wrap.innerHTML='';
+  uniq.forEach(w=>{
+    const chip=document.createElement('button');
+    chip.className='wchip'+(w===set.weight?' active':'')+(w===base?' last':'');
+    chip.textContent = (w%1===0?w:w.toFixed(1)) + (w===base?' ★':'');
+    chip.onclick=()=>{ setWeight(id,i,w); };
+    wrap.appendChild(chip);
+  });
+}
+function setWeight(id,i,w){
+  const set=session.setLog[id][i];
+  set.weight = Math.round(w*10)/10;
+  document.getElementById(`wval-${id}-${i}`).textContent=set.weight;
+  renderChips(id,i);
+  saveSession();
+}
+function adjWeight(id,i,delta){
+  const set=session.setLog[id][i];
+  setWeight(id,i, Math.max(0, (set.weight||0)+delta));
+}
+function adjReps(id,i,delta){
+  const set=session.setLog[id][i];
+  set.reps = Math.max(0, set.reps+delta);
+  document.getElementById(`rval-${id}-${i}`).textContent=set.reps;
+  saveSession();
+}
+function setFeel(id,i,feel){
+  const set=session.setLog[id][i];
+  set.feel=feel;
+  document.querySelectorAll(`#set-${id}-${i} .feel-btn`).forEach(b=>b.classList.toggle('active', b.dataset.feel===feel));
+  saveSession();
+}
+function renderTags(id,i){
+  const set=session.setLog[id][i];
+  const tagsWrap=document.getElementById(`tags-${id}-${i}`);
+  tagsWrap.innerHTML='';
+  QUICK_TAGS.forEach(tag=>{
+    const b=document.createElement('button');
+    b.className='qtag'+(set.comment.includes(tag)?' active':'');
+    b.textContent=tag;
+    b.onclick=()=>{
+      const cmEl=document.getElementById(`cm-${id}-${i}`);
+      if(set.comment.includes(tag)){
+        set.comment = set.comment.replace(new RegExp('\\s*'+tag+'\\s*,?'),'').trim();
+      } else {
+        set.comment = (set.comment? set.comment+', ':'') + tag;
+      }
+      cmEl.value=set.comment;
+      b.classList.toggle('active');
+      saveSession();
+    };
+    tagsWrap.appendChild(b);
+  });
+}
+function toggleDone(id,i){
+  const ex=EX[id];
+  const set=session.setLog[id][i];
+  set.done=!set.done;
+  const card=document.getElementById(`set-${id}-${i}`);
+  card.classList.toggle('done',set.done);
+  document.getElementById(`donebtn-${id}-${i}`).innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${set.done?'Підхід готовий':'Готово'}`;
+  if(set.done){
+    if(ex.type!=='bw') state.weights[id]=set.weight;
+    saveState();
+    if(i<ex.sets-1) startRestTimer(60,'до наступного підходу');
+  }
+  saveSession();
+  markRowComplete(id);
+}
+function buildAirbikeCard(id){
+  const ex=EX[id];
+  const card=document.createElement('div');
+  card.className='set-card';
+  card.innerHTML=`
+    <div class="set-head"><div class="tag">5 × (20 с інтенсивно / 70 с легко)</div></div>
+    <p style="font-size:13.5px;line-height:1.55;margin:0 0 4px;">Таймер веде весь блок сам: 1 хв на вході, 5 інтервалів, 1 хв на виході. За 3 секунди до зміни фази буде короткий сигнал.</p>
+    <button class="big-cta" id="airbikeBtn" style="margin-top:12px" onclick="startAirbike('${id}')">Почати інтервали</button>
+    <div id="airbikeStatus" style="text-align:center;font-size:13px;color:var(--text-dim);font-weight:700;margin-top:10px;"></div>
+  `;
+  return card;
+}
+let airbikeState=null;
+function startAirbike(id){
+  airbikeState={round:0, phase:'hard'};
+  document.getElementById('airbikeBtn').hidden=true;
+  document.getElementById('airbikeStatus').textContent='Вхід: 1 хв спокійно';
+  startRestTimer(60,'1 хв спокійного темпу',()=>runAirbikePhase(id),'Вхід');
+}
+function runAirbikePhase(id){
+  if(airbikeState.round>=5 && !airbikeState.cooled){
+    airbikeState.cooled=true;
+    document.getElementById('airbikeStatus').textContent='Вихід: 1 хв спокійно';
+    startRestTimer(60,'1 хв спокійного темпу',()=>runAirbikePhase(id),'Вихід');
+    return;
+  }
+  if(airbikeState.round>=5){
+    document.getElementById('airbikeStatus').textContent='Готово. Переходь до заминки.';
+    if(navigator.vibrate) navigator.vibrate([80,60,80,60,160]);
+    const set=session.setLog[id]?.[0]||{done:false};
+    set.done=true; session.setLog[id]=[set];
+    markRowComplete(id);
+    return;
+  }
+  const isHard = airbikeState.phase==='hard';
+  const dur = isHard?20:70;
+  document.getElementById('airbikeStatus').textContent = `Раунд ${airbikeState.round+1}/5 · ${isHard?'Інтенсивно':'Легко'}`;
+  startRestTimer(dur, `Раунд ${airbikeState.round+1}/5`, ()=>{
+    if(isHard){ airbikeState.phase='easy'; }
+    else { airbikeState.phase='hard'; airbikeState.round++; }
+    runAirbikePhase(id);
+  }, isHard?'Інтенсивно · 7–8 з 10':'Легко · відновлення');
+}
+
+function prevExercise(){
+  if(session.exIndex>0){ session.exIndex--; renderExercise(); }
+}
+function nextExercise(){
+  const ids=allExIds();
+  if(session.exIndex<ids.length-1){ session.exIndex++; renderExercise(); goto('exercise'); }
+  else { goto('list'); }
+}
+
+/* ---------- Cooldown / summary ---------- */
+function renderCooldownScreenSetup(){
+  const day=DAYS[session.dayKey];
+  if(!session.cooldownDone) session.cooldownDone={};
+  renderChecklist(document.getElementById('cooldownList'), day.cooldown, session.cooldownDone);
+}
+const _origGoto=goto;
+goto=function(name){ if(name==='cooldown') renderCooldownScreenSetup(); _origGoto(name); };
+
+function finishSession(){
+  const day=DAYS[session.dayKey];
+  const date=todayStr();
+  let totalSets=0, totalVolume=0;
+  Object.entries(session.setLog).forEach(([id,sets])=>{
+    const ex=EX[id];
+    const doneSets = sets.filter(s=>s&&s.done);
+    if(!doneSets.length) return;
+    if(!state.history[id]) state.history[id]=[];
+    state.history[id].push({ date, sets: doneSets.map(s=>({weight:s.weight,reps:s.reps,feel:s.feel,comment:s.comment})) });
+    totalSets += doneSets.length;
+    doneSets.forEach(s=>{ if(s.weight) totalVolume += s.weight*s.reps; });
+  });
+  const prevDate = state.lastSessionDate;
+  const wasRecent = prevDate && (new Date(date)-new Date(prevDate))/86400000 <= 4;
+  state.streak = wasRecent ? (state.streak||0)+1 : 1;
+  state.lastSessionDate = date;
+  state.lastDay[session.dayKey]=date;
+  state.activeSession=null;
+  saveState();
+  try{ if(wakeLock) wakeLock.release(); }catch(e){}
+
+  document.getElementById('summaryDay').textContent = `${day.label} · ${day.title} завершено ${fmtDate(date)}`;
+  document.getElementById('sumSets').textContent = totalSets;
+  document.getElementById('sumVolume').textContent = Math.round(totalVolume);
+  document.getElementById('sumStreak').textContent = state.streak;
+  goto('summary');
+}
+
+/* =====================================================================
+   REST TIMER
+===================================================================== */
+/* Sound: iPhone Safari ignores vibration, so a short beep marks the end */
+let audioCtx=null;
+function beep(freq=880, dur=0.15, vol=0.25){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.frequency.value=freq; o.type='sine';
+    g.gain.setValueAtTime(vol, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime+dur);
+  }catch(e){}
+}
+function unlockAudio(){ beep(440,0.01,0.001); }
+
+let timerEnd=0, timerTotal=0;
+function startRestTimer(seconds, note, onDone, title){
+  clearInterval(timerInterval);
+  unlockAudio();
+  const bar=document.getElementById('timerBar');
+  document.getElementById('timerNote').textContent = note||'до наступного підходу';
+  document.querySelector('#timerBar .timer-info b').textContent = title||'Відпочинок';
+  timerTotal=seconds;
+  timerEnd=Date.now()+seconds*1000;
+  bar.classList.add('show');
+  window._timerDone=onDone;
+  let lastTick=null;
+  const tick=()=>{
+    const remaining=Math.max(0, Math.ceil((timerEnd-Date.now())/1000));
+    document.getElementById('timerText').textContent = remaining>=60 ? fmtSec(remaining) : remaining;
+    document.getElementById('timerCircle').style.strokeDashoffset = 163*(1-remaining/timerTotal);
+    if(remaining<=3 && remaining>0 && remaining!==lastTick){ beep(660,0.08,0.18); }
+    lastTick=remaining;
+    if(remaining<=0){
+      clearInterval(timerInterval);
+      bar.classList.remove('show');
+      beep(988,0.35,0.3);
+      if(navigator.vibrate) navigator.vibrate(200);
+      const cb=window._timerDone; window._timerDone=null;
+      if(cb) cb();
+    }
+  };
+  tick();
+  timerInterval=setInterval(tick,250);
+}
+function addTime(s){
+  if(!timerEnd) return;
+  timerEnd+=s*1000; timerTotal+=s;
+}
+function skipTimer(){
+  clearInterval(timerInterval);
+  document.getElementById('timerBar').classList.remove('show');
+  const cb=window._timerDone; window._timerDone=null;
+  if(cb) cb();
+}
+
+/* =====================================================================
+   PROGRESS SCREEN
+===================================================================== */
+let progressExId=null;
+function renderProgress(){
+  const wrap=document.getElementById('exPicker');
+  wrap.innerHTML='';
+  const idsWithHistory = Object.keys(state.history).filter(id=>state.history[id]&&state.history[id].length);
+  if(!idsWithHistory.length){
+    wrap.innerHTML='<div class="empty-note">Ще немає завершених вправ. Пройди перше тренування, і тут з\'явиться графік прогресу.</div>';
+    document.getElementById('chartExName').textContent='—';
+    document.getElementById('chartExRange').textContent='';
+    drawChart([]);
+    document.getElementById('logList').innerHTML='';
+    return;
+  }
+  if(!progressExId || !idsWithHistory.includes(progressExId)) progressExId=idsWithHistory[0];
+  idsWithHistory.forEach(id=>{
+    const chip=document.createElement('button');
+    chip.className='ex-pick-chip'+(id===progressExId?' active':'');
+    chip.textContent=EX[id].name;
+    chip.onclick=()=>{ progressExId=id; renderProgress(); };
+    wrap.appendChild(chip);
+  });
+  renderChartAndLog(progressExId);
+}
+function renderChartAndLog(id){
+  const ex=EX[id];
+  const hist=state.history[id]||[];
+  document.getElementById('chartExName').textContent=ex.name;
+  document.getElementById('chartExRange').textContent = hist.length? (hist.length+' тренувань') : '';
+  const points = hist.map(h=>{
+    const ws = h.sets.map(s=>s.weight).filter(w=>w!=null);
+    const top = ws.length? Math.max(...ws) : null;
+    return {date:h.date, value: top ?? Math.max(...h.sets.map(s=>s.reps))};
+  });
+  drawChart(points);
+
+  const logWrap=document.getElementById('logList');
+  logWrap.innerHTML='';
+  hist.slice().reverse().forEach(h=>{
+    const comments = h.sets.map(s=>s.comment).filter(Boolean);
+    const bestSet = h.sets.reduce((a,b)=> (b.weight||0)>=(a.weight||0)?b:a, h.sets[0]);
+    const item=document.createElement('div');
+    item.className='log-item';
+    item.innerHTML=`<div class="row1"><span>${fmtDate(h.date)}</span><b>${bestSet.weight?bestSet.weight+' кг × '+bestSet.reps:bestSet.reps+' повт.'}</b></div>
+      ${comments.length?`<div class="cm">${comments.join(' · ')}</div>`:''}`;
+    logWrap.appendChild(item);
+  });
+  if(!hist.length) logWrap.innerHTML='<div class="empty-note">Немає записів.</div>';
+}
+function drawChart(points){
+  const canvas=document.getElementById('chart');
+  const dpr=window.devicePixelRatio||1;
+  const cssW=canvas.clientWidth||300, cssH=140;
+  canvas.width=cssW*dpr; canvas.height=cssH*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  const styles=getComputedStyle(document.documentElement);
+  const accent=styles.getPropertyValue('--accent').trim();
+  const grid=styles.getPropertyValue('--border').trim();
+  const dim=styles.getPropertyValue('--text-dim').trim();
+
+  const padL=34, padR=10, padT=14, padB=22;
+  const w=cssW-padL-padR, h=cssH-padT-padB;
+
+  ctx.strokeStyle=grid; ctx.lineWidth=1;
+  for(let i=0;i<=3;i++){
+    const y=padT+h*i/3;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(cssW-padR,y); ctx.stroke();
+  }
+  if(!points.length){
+    ctx.fillStyle=dim; ctx.font='12px Manrope,sans-serif'; ctx.textAlign='center';
+    ctx.fillText('Немає даних', cssW/2, cssH/2);
+    return;
+  }
+  const values=points.map(p=>p.value);
+  const min=Math.min(...values), max=Math.max(...values);
+  const lo = min===max ? min-1 : min - (max-min)*0.15;
+  const hi = min===max ? max+1 : max + (max-min)*0.15;
+  const x = i => padL + (points.length===1? w/2 : w*i/(points.length-1));
+  const y = v => padT + h*(1-(v-lo)/(hi-lo));
+
+  ctx.fillStyle=dim; ctx.font='10.5px Manrope,sans-serif'; ctx.textAlign='right'; ctx.textBaseline='middle';
+  ctx.fillText(Math.round(hi), padL-8, padT);
+  ctx.fillText(Math.round(lo), padL-8, padT+h);
+
+  const grad=ctx.createLinearGradient(0,padT,0,padT+h);
+  grad.addColorStop(0, accent+'55'); grad.addColorStop(1, accent+'02');
+  ctx.beginPath();
+  points.forEach((p,i)=>{ const px=x(i),py=y(p.value); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.lineTo(x(points.length-1), padT+h); ctx.lineTo(x(0), padT+h); ctx.closePath();
+  ctx.fillStyle=grad; ctx.fill();
+
+  ctx.beginPath();
+  points.forEach((p,i)=>{ const px=x(i),py=y(p.value); i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); });
+  ctx.strokeStyle=accent; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.stroke();
+
+  points.forEach((p,i)=>{
+    const px=x(i),py=y(p.value);
+    ctx.beginPath(); ctx.arc(px,py, i===points.length-1?4:2.5,0,7);
+    ctx.fillStyle= i===points.length-1?accent:styles.getPropertyValue('--surface').trim();
+    ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle=accent; ctx.stroke();
+  });
+}
+
+/* =====================================================================
+   EXPORT FOR CLAUDE ANALYSIS
+===================================================================== */
+function buildExportText(){
+  const lines=[];
+  lines.push('Зведення тренувань SetFlow');
+  lines.push('Дата експорту: '+todayStr());
+  lines.push('');
+  ['A','B','C'].forEach(k=>{
+    const day=DAYS[k];
+    lines.push(`== ${day.label} (${day.title}) — востаннє ${state.lastDay[k]?fmtDate(state.lastDay[k]):'ще не виконано'} ==`);
+    day.supersets.flatMap(s=>s.ids).forEach(id=>{
+      const hist=state.history[id]||[];
+      if(!hist.length) return;
+      const recent=hist.slice(-3);
+      const parts=recent.map(h=>{
+        const w=h.sets.map(s=>s.weight).filter(Boolean);
+        const top=w.length?Math.max(...w):null;
+        const comments=h.sets.map(s=>s.comment).filter(Boolean);
+        return `${fmtDate(h.date)}: ${top?top+'кг':h.sets[0].reps+' повт.'}${comments.length?' ('+comments.join('; ')+')':''}`;
+      });
+      lines.push(`- ${EX[id].name}: ${parts.join(' | ')}`);
+    });
+    lines.push('');
+  });
+  lines.push('Питання: проаналізуй прогрес і запропонуй, чи варто замінити якісь вправи на тренажерах з тими ж м\'язовими групами для різноманітності.');
+  return lines.join('\n');
+}
+function openExport(){ goto('progress'); }
+async function copyExport(){
+  const text=buildExportText();
+  let ok=false;
+  try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){ ok=false; }
+  if(!ok){
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta); ok=true;
+    }catch(e){}
+  }
+  const fb=document.getElementById('copyFb');
+  if(ok){ fb.classList.add('show'); showToast('Зведення скопійовано'); setTimeout(()=>fb.classList.remove('show'),2500); }
+  else{ showToast('Не вдалося скопіювати'); }
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._toastT);
+  window._toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* =====================================================================
+   INIT
+===================================================================== */
+/* Keeps the workout in progress if iOS reloads the page after opening a video */
+function saveSession(){
+  if(!session) return;
+  state.activeSession = Object.assign({}, session, {date: todayStr()});
+  saveState();
+}
+function resumeSession(){
+  const s=state.activeSession;
+  if(!s) return;
+  session = s;
+  buildExerciseList();
+  allExIds().forEach(markRowComplete);
+  requestWakeLock();
+  goto('list');
+}
+function discardSession(){
+  state.activeSession=null; saveState(); session=null; renderHome();
+}
+const _renderHomeOrig = renderHome;
+renderHome = function(){
+  _renderHomeOrig();
+  renderStorageStatus();
+  const s=state.activeSession;
+  const grid=document.getElementById('dayGrid');
+  if(s && s.date===todayStr()){
+    const box=document.createElement('div');
+    box.className='day-card next';
+    box.style.flexDirection='column';
+    box.style.alignItems='stretch';
+    box.innerHTML=`<div class="day-title">Незавершене тренування: ${DAYS[s.dayKey].label}</div>
+      <div class="day-desc">Всі відмічені підходи збережені.</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="big-cta" style="margin:0;flex:2" onclick="resumeSession()">Продовжити</button>
+        <button class="ghost-cta" style="margin:0;flex:1" onclick="discardSession()">Скинути</button>
+      </div>`;
+    grid.prepend(box);
+  }
+};
+
+/* Feedback: opens claude.ai's comment composer on the current screen,
+   falls back to a copy-and-send form where commenting is unavailable */
+function openFeedback(){
+  document.getElementById('fbSheet').hidden=false;
+}
+
+/* ---------- Backup: export / import ---------- */
+function openBackup(){ cancelImport(); document.getElementById('backupSheet').hidden=false; }
+function closeBackup(){ document.getElementById('backupSheet').hidden=true; }
+async function exportBackup(){
+  const json=JSON.stringify(state,null,2);
+  const name=`setflow-${todayStr()}.json`;
+  const blob=new Blob([json],{type:'application/json'});
+  try{
+    const file=new File([blob],name,{type:'application/json'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:'SetFlow: резервна копія'});
+      showToast('Копію збережено');
+      return;
+    }
+  }catch(e){
+    if(e && e.name==='AbortError') return;
+  }
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  showToast('Файл завантажено');
+}
+let pendingImport=null;
+function importBackup(input){
+  const f=input.files && input.files[0];
+  input.value='';
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!data || typeof data!=='object' || !data.history || !data.weights) throw new Error('bad');
+      pendingImport=data;
+      const n=Object.values(data.history).reduce((s,h)=>s+h.length,0);
+      const when=data.savedAt?new Date(data.savedAt).toLocaleDateString('uk-UA',{day:'numeric',month:'long'}):'невідомо';
+      document.getElementById('importInfo').textContent=`У файлі ${n} записів вправ, збережено ${when}. Поточні дані на телефоні буде замінено.`;
+      document.getElementById('importConfirm').hidden=false;
+    }catch(e){
+      showToast('Це не файл резервної копії SetFlow');
+    }
+  };
+  reader.readAsText(f);
+}
+function applyImport(){
+  if(!pendingImport) return;
+  state=Object.assign(emptyState(), pendingImport);
+  pendingImport=null;
+  saveState();
+  closeBackup();
+  renderHome();
+  showToast('Дані відновлено');
+}
+function cancelImport(){ pendingImport=null; const c=document.getElementById('importConfirm'); if(c) c.hidden=true; }
+function closeFeedback(){ document.getElementById('fbSheet').hidden=true; }
+async function copyFeedback(){
+  const screenName = document.querySelector('.screen.active h1,.screen.active h2')?.textContent || '';
+  const text = 'Відгук про SetFlow' + (screenName?` (екран: ${screenName})`:'') + ':\n' + document.getElementById('fbText').value.trim();
+  let ok=false;
+  try{ await navigator.clipboard.writeText(text); ok=true; }
+  catch(e){ const ta=document.getElementById('fbText'); ta.focus(); ta.select(); }
+  showToast(ok?'Скопійовано, надішли Павлу':'Виділив текст, скопіюй вручну');
+}
+
+/* Screen stays on while training */
+let wakeLock=null;
+async function requestWakeLock(){
+  try{ if('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible' && session) requestWakeLock();
+});
+
+/* Swipe between Виконання and Техніка */
+(function(){
+  const scr=document.getElementById('screen-exercise');
+  let sx=0, sy=0, tracking=false;
+  scr.addEventListener('touchstart',e=>{
+    if(e.target.closest('.chip-row,textarea')) { tracking=false; return; }
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY; tracking=true;
+  },{passive:true});
+  scr.addEventListener('touchend',e=>{
+    if(!tracking) return;
+    const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      if(dx<0 && currentTab==='do') switchTab('tech');
+      else if(dx>0 && currentTab==='tech') switchTab('do');
+    }
+  },{passive:true});
+})();
+
+/* Boot: show local copy instantly, then reconcile with IndexedDB */
+renderHome();
+(async()=>{
+  await loadFromIdb();
+  renderHome();
+  await requestPersist();
+  saveState(); // make sure both stores hold the same copy
+  renderStorageStatus();
+})();
+/* Flush on app close / switch (iOS may kill the page without warning) */
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ if(session) saveSession(); else saveState(); } });
+window.addEventListener('pagehide',()=>{ if(session) saveSession(); else saveState(); });
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
+window.addEventListener('resize', ()=>{ if(document.getElementById('screen-progress').classList.contains('active')) renderChartAndLog(progressExId); });
+</script>
+</body>
+</html>
