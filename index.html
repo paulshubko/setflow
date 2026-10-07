@@ -434,6 +434,7 @@ canvas{width:100%;display:block;}
 .fb-panel{
   background:var(--surface);width:100%;max-width:560px;border-radius:22px 22px 0 0;
   padding:20px 16px calc(20px + env(safe-area-inset-bottom,0px));
+  max-height:92vh;overflow-y:auto;
 }
 .fb-panel h3{font-size:18px;}
 .fb-panel p{font-size:13px;color:var(--text-dim);margin:6px 0 0;line-height:1.5;}
@@ -444,6 +445,11 @@ canvas{width:100%;display:block;}
 .storage-status.ok{background:var(--success-bg);color:var(--success);}
 .storage-status.warn{background:var(--warn-bg);color:var(--warn);}
 .storage-status.bad{background:var(--warn-bg);color:var(--accent);}
+.sync-label{display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin:14px 0 6px;}
+.sync-input{
+  width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  padding:12px;font-size:16px;color:var(--text);font-family:inherit;
+}
 .import-confirm{background:var(--surface-2);border-radius:12px;padding:12px;margin-top:12px;}
 .import-confirm p{margin:0;color:var(--text);}
 .test-card{
@@ -493,6 +499,7 @@ canvas{width:100%;display:block;}
     <h3>Резервна копія</h3>
     <p>Збережи файл з усією історією в «Файли» або надішли собі в Telegram. Знадобиться, якщо зміниш телефон або очистиш Safari.</p>
     <button class="big-cta" onclick="exportBackup()">Зберегти копію</button>
+    <button class="ghost-cta" onclick="closeBackup();openSync()">Синхронізація з сервером</button>
     <button class="ghost-cta" onclick="document.getElementById('importFile').click()">Відновити з файлу</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(this)">
     <div class="import-confirm" id="importConfirm" hidden>
@@ -506,6 +513,22 @@ canvas{width:100%;display:block;}
   </div>
 </div>
 </section>
+
+<div class="fb-sheet" id="syncSheet" hidden>
+  <div class="fb-panel">
+    <h3>Синхронізація з сервером</h3>
+    <p>Дані тренувань автоматично копіюються на твій домашній сервер і підтягуються на інших пристроях. Без інтернету все працює як раніше.</p>
+    <label class="sync-label" for="syncUrl">Адреса сервера</label>
+    <input class="sync-input" id="syncUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://macmini.xxxx.ts.net">
+    <label class="sync-label" for="syncToken">Токен</label>
+    <input class="sync-input" id="syncToken" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="токен з установки сервера">
+    <div class="storage-status ok" id="syncInfo" style="margin-top:12px;"></div>
+    <button class="big-cta" onclick="saveSyncSettings()">Підключити й синхронізувати</button>
+    <button class="ghost-cta" onclick="syncNow().then(renderSyncStatus)">Синхронізувати зараз</button>
+    <button class="ghost-cta" id="syncOff" onclick="disconnectSync()" hidden>Вимкнути синхронізацію</button>
+    <button class="ghost-cta" onclick="closeSync()">Закрити</button>
+  </div>
+</div>
 
 <!-- ============ WARMUP ============ -->
 <section class="screen" id="screen-warmup">
@@ -987,11 +1010,25 @@ async function idbSet(key,val){
   });
 }
 let storageOk=true;
+/* savedAt marks the last real change, so merging two devices knows who is newer.
+   A save that changes nothing (app backgrounded, boot) keeps the old stamp. */
+let _lastHash=null;
+function stateHash(){
+  const sa=state.savedAt; state.savedAt=0;
+  const h=JSON.stringify(state);
+  state.savedAt=sa;
+  return h;
+}
 function saveState(){
-  state.savedAt=Date.now();
+  const h=stateHash();
+  if(h!==_lastHash){
+    if(_lastHash!==null || !state.savedAt) state.savedAt=Date.now();
+    _lastHash=h;
+  }
   const json=JSON.stringify(state);
   try{ localStorage.setItem(STORE_KEY, json); }catch(e){}
   idbSet(STORE_KEY, json).then(()=>{ storageOk=true; }).catch(()=>{ storageOk=false; renderStorageStatus(); });
+  scheduleSync();
 }
 async function loadFromIdb(){
   try{
@@ -1022,6 +1059,12 @@ function renderStorageStatus(){
   if(!storageOk){ msg='Не вдалося зберегти дані на телефоні. Зроби резервну копію.'; cls='bad'; }
   else if(!isStandalone()){ msg='Додай SetFlow на екран Домівки, щоб iPhone точно не стер дані: «Поділитись» → «На екран Домівки».'; cls='warn'; }
   else { msg=`Дані збережені на телефоні${sessions?` · ${sessions} записів вправ`:''}.`; }
+  if(syncCfg){
+    const st=syncStatus;
+    if(st.state==='ok') msg+=` Сервер: синхронізовано о ${new Date(st.at).toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'})}.`;
+    else if(st.state==='busy') msg+=' Сервер: синхронізація…';
+    else if(st.state==='err'){ msg+=` Сервер: ${st.msg||'немає зв\'язку'}, спробую знову пізніше.`; if(cls==='ok') cls='warn'; }
+  }
   el.className='storage-status '+cls;
   el.textContent=msg;
 }
@@ -1792,6 +1835,198 @@ function openFeedback(){
   document.getElementById('fbSheet').hidden=false;
 }
 
+/* =====================================================================
+   SYNC with the home server (see server/ folder)
+   Local data always works offline. When the server is reachable the app
+   pulls, merges both copies (nothing is lost) and pushes the result.
+===================================================================== */
+const SYNC_KEY='setflow.sync';
+let syncCfg=loadSyncCfg();
+let syncStatus={state:syncCfg?'idle':'off', at:0, msg:''};
+let syncTimer=null, syncBusy=false, syncAgain=null;
+
+function loadSyncCfg(){
+  try{ const c=JSON.parse(localStorage.getItem(SYNC_KEY)||'null'); if(c && c.url && c.token) return c; }catch(e){}
+  return null;
+}
+function saveSyncCfg(c){
+  syncCfg=c;
+  try{ if(c) localStorage.setItem(SYNC_KEY, JSON.stringify(c)); else localStorage.removeItem(SYNC_KEY); }catch(e){}
+}
+function normUrl(u){
+  u=(u||'').trim().replace(/\/+$/,'');
+  if(!/^https?:\/\//i.test(u)) u='https://'+u;
+  return u;
+}
+function urlAllowed(u){
+  try{
+    const x=new URL(u);
+    return x.protocol==='https:' || x.hostname==='localhost' || x.hostname==='127.0.0.1';
+  }catch(e){ return false; }
+}
+/* Setup link:  .../setflow/#sync=<base64url({"u":url,"t":token})>  fills the settings once */
+function readSyncLink(){
+  const m=/[#&]sync=([A-Za-z0-9_-]+)/.exec(location.hash||'');
+  if(!m) return;
+  try{
+    const b=m[1].replace(/-/g,'+').replace(/_/g,'/');
+    const o=JSON.parse(decodeURIComponent(escape(atob(b+'='.repeat((4-b.length%4)%4)))));
+    const url=normUrl(o.u);
+    if(urlAllowed(url) && o.t){ saveSyncCfg({url, token:String(o.t)}); showToast('Синхронізацію налаштовано'); }
+  }catch(e){ showToast('Посилання налаштування не підійшло'); }
+  try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+}
+
+/* --- merge two copies of the data (a = this device, b = server) --- */
+function sessKey(x){ return x.date+'|'+JSON.stringify(x.sets); }
+function mergeHist(a,b){
+  const count=list=>{ const r={}; list.forEach(x=>{ const k=sessKey(x); r[k]=(r[k]||0)+1; }); return r; };
+  const ca=count(a), cb=count(b), used={}, out=[];
+  const take=list=>list.forEach(x=>{
+    const k=sessKey(x), max=Math.max(ca[k]||0, cb[k]||0);
+    if((used[k]||0)<max){ used[k]=(used[k]||0)+1; out.push(x); }
+  });
+  take(a); take(b);
+  out.sort((x,y)=> x.date<y.date?-1 : x.date>y.date?1 : 0);
+  return out;
+}
+function mergeStates(a,b){
+  const A=Object.assign(emptyState(),a), B=Object.assign(emptyState(),b);
+  const aNewer=(A.savedAt||0)>=(B.savedAt||0);
+  const out=emptyState();
+  // weights: the newer copy wins per exercise
+  out.weights=Object.assign({}, aNewer?B.weights:A.weights, aNewer?A.weights:B.weights);
+  // last done date per day: the later one
+  Object.keys(Object.assign({},A.lastDay,B.lastDay)).forEach(k=>{
+    const x=A.lastDay[k]||'', y=B.lastDay[k]||'';
+    out.lastDay[k]= x>y?x:y;
+  });
+  // history is append-only: keep every session from both sides
+  Object.keys(Object.assign({},A.history,B.history)).forEach(id=>{
+    out.history[id]=mergeHist(A.history[id]||[], B.history[id]||[]);
+  });
+  const la=A.lastSessionDate||'', lb=B.lastSessionDate||'';
+  out.lastSessionDate = (la>lb?la:lb) || null;
+  out.streak = la>lb ? (A.streak||0) : lb>la ? (B.streak||0) : Math.max(A.streak||0,B.streak||0);
+  out.savedAt=Math.max(A.savedAt||0,B.savedAt||0);
+  // unfinished workout: from the newer copy, only if it is from today
+  const act=(aNewer?A:B).activeSession;
+  out.activeSession = act && act.date===todayStr() ? act : null;
+  return out;
+}
+function contentKey(s){
+  const c=Object.assign({}, s); c.savedAt=0;
+  const sort=o=>Array.isArray(o)?o.map(sort):(o&&typeof o==='object')?Object.keys(o).sort().reduce((r,k)=>(r[k]=sort(o[k]),r),{}):o;
+  return JSON.stringify(sort(c));
+}
+
+/* --- talking to the server --- */
+async function syncFetch(method, body){
+  const ctl=new AbortController();
+  const t=setTimeout(()=>ctl.abort(), 12000);
+  try{
+    const res=await fetch(syncCfg.url+'/api/state',{
+      method, signal:ctl.signal,
+      headers:Object.assign({'Authorization':'Bearer '+syncCfg.token}, body?{'Content-Type':'application/json'}:{}),
+      body: body?JSON.stringify(body):undefined
+    });
+    let data=null; try{ data=await res.json(); }catch(e){}
+    return {status:res.status, data};
+  } finally { clearTimeout(t); }
+}
+function scheduleSync(){
+  if(!syncCfg) return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(()=>syncNow(), 2500);
+}
+async function syncNow(opts){
+  opts=opts||{};
+  if(!syncCfg) return;
+  if(syncBusy){ syncAgain=Object.assign({},syncAgain,opts); return; }
+  syncBusy=true; clearTimeout(syncTimer);
+  syncStatus={state:'busy', at:syncStatus.at, msg:''}; renderSyncStatus();
+  try{
+    for(let attempt=0; attempt<4; attempt++){
+      const got=await syncFetch('GET');
+      if(got.status===401){ throw new Error('токен не підходить'); }
+      if(got.status===429){ throw new Error('забагато спроб'); }
+      if(got.status!==200 || !got.data) throw new Error('помилка сервера '+got.status);
+      const remote=got.data.state;
+      const merged = (opts.overwrite || !remote) ? Object.assign(emptyState(), state) : mergeStates(state, remote);
+      let pushed=true;
+      if(remote && !opts.overwrite && contentKey(merged)===contentKey(remote)) pushed=false;
+      if(pushed){
+        const put=await syncFetch('PUT',{baseRev:got.data.rev, state:merged});
+        if(put.status===409) continue;            // somebody wrote in between: pull again
+        if(put.status!==200) throw new Error('помилка запису '+put.status);
+      }
+      if(contentKey(merged)!==contentKey(state)){
+        state=merged;
+        saveLocalOnly();
+        if(document.getElementById('screen-home').classList.contains('active')) renderHome();
+      }
+      syncStatus={state:'ok', at:Date.now(), msg:''};
+      return;
+    }
+    throw new Error('сервер зайнятий');
+  }catch(e){
+    const offline=(e && (e.name==='AbortError' || e instanceof TypeError));
+    syncStatus={state:'err', at:syncStatus.at, msg: offline?'немає зв\'язку':(e.message||'помилка')};
+  }finally{
+    syncBusy=false; renderSyncStatus(); renderStorageStatus();
+    if(syncAgain){ const o=syncAgain; syncAgain=null; setTimeout(()=>syncNow(o),50); }
+  }
+}
+/* Store what came from the server without queueing another sync */
+function saveLocalOnly(){
+  _lastHash=stateHash();
+  const json=JSON.stringify(state);
+  try{ localStorage.setItem(STORE_KEY, json); }catch(e){}
+  idbSet(STORE_KEY, json).catch(()=>{});
+}
+
+/* --- settings sheet --- */
+function openSync(){
+  document.getElementById('syncUrl').value = syncCfg?syncCfg.url:'';
+  document.getElementById('syncToken').value = syncCfg?syncCfg.token:'';
+  document.getElementById('syncOff').hidden = !syncCfg;
+  renderSyncStatus();
+  document.getElementById('syncSheet').hidden=false;
+}
+function closeSync(){ document.getElementById('syncSheet').hidden=true; }
+function renderSyncStatus(){
+  const el=document.getElementById('syncInfo');
+  if(!el) return;
+  const st=syncStatus;
+  let txt='Не підключено. Встав адресу сервера й токен.';
+  if(syncCfg){
+    if(st.state==='ok') txt='Підключено. Остання синхронізація: '+new Date(st.at).toLocaleString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    else if(st.state==='busy') txt='Синхронізую…';
+    else if(st.state==='err') txt='Помилка: '+st.msg;
+    else txt='Підключено.';
+  }
+  el.textContent=txt;
+}
+async function saveSyncSettings(){
+  const url=normUrl(document.getElementById('syncUrl').value);
+  const token=document.getElementById('syncToken').value.trim();
+  if(!url || !token){ showToast('Заповни адресу і токен'); return; }
+  if(!urlAllowed(url)){ showToast('Адреса має починатися з https://'); return; }
+  saveSyncCfg({url, token});
+  syncStatus={state:'idle', at:0, msg:''};
+  await syncNow();
+  renderStorageStatus();
+  if(syncStatus.state==='ok') showToast('Синхронізація працює');
+}
+function disconnectSync(){
+  saveSyncCfg(null);
+  syncStatus={state:'off', at:0, msg:''};
+  document.getElementById('syncUrl').value=''; document.getElementById('syncToken').value='';
+  document.getElementById('syncOff').hidden=true;
+  renderSyncStatus(); renderStorageStatus();
+  showToast('Синхронізацію вимкнено (дані на телефоні лишились)');
+}
+
 /* ---------- Backup: export / import ---------- */
 function openBackup(){ cancelImport(); document.getElementById('backupSheet').hidden=false; }
 function closeBackup(){ document.getElementById('backupSheet').hidden=true; }
@@ -1844,6 +2079,7 @@ function applyImport(){
   closeBackup();
   renderHome();
   showToast('Дані відновлено');
+  syncNow({overwrite:true});
 }
 function cancelImport(){ pendingImport=null; const c=document.getElementById('importConfirm'); if(c) c.hidden=true; }
 function closeFeedback(){ document.getElementById('fbSheet').hidden=true; }
@@ -1883,7 +2119,7 @@ document.addEventListener('visibilitychange',()=>{
   },{passive:true});
 })();
 
-/* Boot: show local copy instantly, then reconcile with IndexedDB */
+/* Boot: show local copy instantly, then reconcile with IndexedDB, then with the server */
 renderHome();
 (async()=>{
   await loadFromIdb();
@@ -1891,7 +2127,12 @@ renderHome();
   await requestPersist();
   saveState(); // make sure both stores hold the same copy
   renderStorageStatus();
+  readSyncLink();
+  syncNow();
 })();
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncNow(); });
+window.addEventListener('online',()=>syncNow());
+window.addEventListener('hashchange',()=>{ readSyncLink(); syncNow(); });
 /* Flush on app close / switch (iOS may kill the page without warning) */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ if(session) saveSession(); else saveState(); } });
 window.addEventListener('pagehide',()=>{ if(session) saveSession(); else saveState(); });

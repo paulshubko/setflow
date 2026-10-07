@@ -1,6 +1,6 @@
 /* SetFlow service worker: offline app shell + cached fonts.
    Bump VERSION on every release so phones pick up the new files. */
-const VERSION = 'setflow-v2';
+const VERSION = 'setflow-v3';
 const SHELL = [
   './',
   './index.html',
