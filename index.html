@@ -294,6 +294,12 @@ button{font-family:inherit;}
 .cue-block ul li{margin-bottom:4px;}
 .cue-block.warn h4{color:var(--warn);}
 .cue-block.warn{background:var(--warn-bg);border-color:transparent;}
+.alt-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:14px;margin-top:10px;}
+.alt-card .alt-from{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-faint);}
+.alt-card h3{font-size:18px;margin:4px 0 2px;}
+.alt-card .alt-scheme{font-size:13px;color:var(--text-dim);font-weight:700;}
+.alt-card .alt-why{font-size:13.5px;line-height:1.55;margin:10px 0 0;}
+.alt-card .alt-state{font-size:12.5px;font-weight:800;color:var(--text-dim);margin-top:10px;}
 
 .set-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);
@@ -565,6 +571,7 @@ canvas{width:100%;display:block;}
   <div class="tabs">
     <button class="tab active" data-tab="do" onclick="switchTab('do')">Виконання</button>
     <button class="tab" data-tab="tech" onclick="switchTab('tech')">Техніка</button>
+    <button class="tab" data-tab="alt" onclick="switchTab('alt')">Заміна</button>
   </div>
 
   <div class="swipe-hint">Свайп вліво, щоб глянути техніку</div>
@@ -584,6 +591,8 @@ canvas{width:100%;display:block;}
     <div class="cue-block"><h4>Виконання</h4><ul id="techSteps"></ul></div>
     <div class="cue-block warn"><h4>Типові помилки</h4><ul id="techErrors"></ul></div>
   </div>
+
+  <div class="tab-panel" data-panel="alt" id="altPanel"></div>
 </section>
 
 <!-- ============ COOLDOWN ============ -->
@@ -886,7 +895,61 @@ const EX = {
   c_burpee:{name:'Берпі', type:'bw', sets:3, repsDefault:6, repsHint:'6',
     setup:['Стоячи, стопи на ширині плечей, місце для упору лежачи.'],
     steps:['Присядь, долоні на підлогу.','Відстрибни ногами назад в упор лежачи, тіло пряме.','Застрибни ногами назад до рук одним рухом, як у поп-апі.','Встань і зроби невеликий стрибок вгору.'],
-    errors:['Поперек провисає в упорі лежачи.','Стопи приземляються далеко від рук.','Темп важливіший за техніку: краще 6 якісних, ніж 10 рваних.']}
+    errors:['Поперек провисає в упорі лежачи.','Стопи приземляються далеко від рук.','Темп важливіший за техніку: краще 6 якісних, ніж 10 рваних.']},
+
+  /* ---- Alternatives: used when the main equipment is busy (see ALT below) ---- */
+  alt_smith_squat:{name:'Присід у Смітта', type:'machine', step:5, sets:3, repsDefault:9, repsHint:'8–10', w:20,
+    setup:['Штанга на верху трапецій, стопи трохи попереду грифа, ширина трохи ширша за плечі.','Прес напружений, груди відкриті.'],
+    steps:['Вдих, таз назад і вниз, коліна йдуть по лінії носків.','Опускайся, доки стегна паралельні підлозі або трохи вище.','Видих, підйом через п\'яти зі стисканням сідниць.'],
+    errors:['Стопи під грифом: коліна їдуть далеко вперед, навантаження на суглоб.','П\'яти відриваються від підлоги.','Коліна завалюються всередину на підйомі.']},
+  alt_suitcase_carry:{name:'Прогулянка з гантеллю в одній руці', type:'db', step:2.5, sets:3, repsDefault:25, repsHint:'20–30 м на сторону', repsUnit:'м', w:12.5,
+    setup:['Одна гантель збоку у вільній руці, плечі опущені й рівні.','Прес напружений, корпус рівний.'],
+    steps:['Крокуй короткими кроками, не даючи гантелі нахиляти корпус вбік.','Таз і плечі лишаються рівними, погляд вперед.','Дійшов до кінця, перекинь гантель в іншу руку й повертайся.'],
+    errors:['Корпус хилиться в бік гантелі.','Плече піднімається до вуха.','Занадто довгі кроки розхитують таз.']},
+  alt_hip_thrust_bench:{name:'Hip thrust з гантеллю від лави', type:'db', step:2.5, sets:3, repsDefault:11, repsHint:'10–12', w:25,
+    setup:['Сядь на підлогу спиною до лави, низ лопаток на краю лави.','Гантель лежить на згині стегон, притримуй її руками. Стопи на ширині таза.'],
+    steps:['Підборіддя до грудей, погляд вперед.','Видих, штовхни п\'ятами й підніми таз до прямої лінії плечі, таз, коліна.','Вгорі затримка 1 с і сильне стискання сідниць.','Повільно опусти таз на 2–3 рахунки.'],
+    errors:['Прогин у попереку вгорі замість роботи сідниць.','Стопи надто близько: навантаження йде в квадрицепс.','Гантель з\'їжджає на живіт: тримай її на тазових кістках.']},
+  alt_single_leg_rdl:{name:'Румунська тяга на одній нозі', type:'db', step:2.5, sets:3, repsDefault:8, repsHint:'8 на ногу', w:10,
+    setup:['Стань поруч зі стійкою, легко тримайся вільною рукою для балансу.','Гантель у руці з боку вільної ноги, опорна нога злегка зігнута.'],
+    steps:['Відводь таз назад, вільна нога йде назад як противага, корпус нахиляється вперед.','Спина рівна, таз не розвертається, відчуй розтяг задньої поверхні опорної ноги.','Стисни сідницю опорної ноги й поверни корпус у вертикаль.'],
+    errors:['Округлення спини.','Таз розвертається вбік разом із вільною ногою.','Опорне коліно згинається більше, і рух стає присідом.']},
+  alt_reverse_lunge:{name:'Зворотний випад', type:'bw', sets:3, repsDefault:6, repsHint:'6 на ногу',
+    setup:['Стоячи, стопи на ширині таза, пальці легко на стійці для балансу.','Роби починаючи з лівої ноги, що відходить назад, і стільки ж повторів на правій.'],
+    steps:['Крок назад, опускай таз вертикально вниз, заднє коліно майже торкається підлоги.','Корпус трохи нахилений вперед, таз не завалюється вбік.','Підйом через п\'яту передньої ноги, повернись у стійку.'],
+    errors:['Передня п\'ята відривається від підлоги.','Передній крок занадто короткий, коліно їде за носок.','Таз хитається вбік.']},
+  alt_reverse_fly:{name:'Розведення гантелей у нахилі', type:'db', step:2.5, sets:3, repsDefault:12, repsHint:'12–15', w:5,
+    setup:['Нахились уперед від тазу до майже паралельно підлозі, спина рівна, коліна м\'які.','Гантелі висять під плечима, лікті трохи зігнуті.'],
+    steps:['Розводь руки в сторони до рівня спини, зводячи лопатки.','Вгорі коротка пауза.','Повільно опусти гантелі.'],
+    errors:['Важка вага змушує розгойдуватись і тягти спиною.','Плечі піднімаються до вух.','Рух іде тільки руками без зведення лопаток.']},
+  alt_overhead_triceps:{name:'Розгинання руки з-за голови з гантеллю', type:'db', step:2.5, sets:3, repsDefault:12, repsHint:'12', w:10,
+    setup:['Сидячи або стоячи, обома руками тримай одну гантель над головою.','Лікті дивляться вперед і притиснуті ближче до голови.'],
+    steps:['Опускай гантель за голову, згинаючи лише лікті.','Розгинай руки вгору до майже повного випрямлення.','Контрольований темп, лікті не розходяться.'],
+    errors:['Лікті розходяться в сторони.','Прогин у попереку.','Занадто важка гантель, і рух іде ривком.']},
+  alt_popup_bench:{name:'Поп-ап з упором рук на лаву', type:'bw', sets:3, repsDefault:5, repsHint:'5',
+    setup:['Руки на лаві на ширині грудної клітки, тіло пряме, ноги випрямлені позаду.','Уяви центральну лінію дошки, стопи мають приземлитися на ній.'],
+    steps:['Різко відштовхнись руками від лави, груди вгору.','Одним рухом підтягни обидві ноги під себе: передня між руками, задня на ширині плечей.','Приземлись у низьку стійку, руки спокійно перед собою, погляд вперед.','Поверни ноги назад і повтори.'],
+    errors:['Спершу коліна, і лише потім стопи: звик вставати у два етапи.','Руки розкидає в сторони.','Стопи приземляються не на лінії, а з кроком убік.']},
+  alt_dead_hang:{name:'Вис на турніку', type:'bw', sets:3, repsDefault:20, repsHint:'20–30 с', repsUnit:'с',
+    setup:['Хват трохи ширше плечей, повний вис, ноги злегка зігнуті або схрещені.','Якщо хват слабкий, ставай на підставку й знімай ноги з неї вже у висі.'],
+    steps:['Лопатки трохи опусти вниз і назад, не втягуй шию в плечі.','Тримай прес напруженим, тіло не розгойдується.','Дихай рівно до кінця таймера.'],
+    errors:['Розгойдування тілом.','Плечі провалюються до вух.','Затримка дихання.']},
+  alt_bird_dog:{name:'Bird dog', type:'bw', sets:3, repsDefault:10, repsHint:'10 на сторону · затримка 2 с',
+    setup:['На четвереньках, долоні під плечима, коліна під тазом, спина нейтральна.'],
+    steps:['Видих, випрямляй протилежну руку й ногу до лінії тіла.','Затримка 2 с, таз і плечі нерухомі, поперек не прогинається.','Повільно поверни й чергуй сторони.'],
+    errors:['Поперек прогинається при піднятій нозі.','Таз розвертається вбік.','Ривки замість контрольованого руху.']},
+  alt_single_leg_balance:{name:'Стійка на одній нозі на подушці', type:'bw', sets:3, repsDefault:30, repsHint:'30 с на ногу', repsUnit:'с', sides:true,
+    setup:['Балансувальна подушка або складений килимок, поруч стійка для підстраховки.','Коліно опорної ноги м\'яке.'],
+    steps:['Стань на одну ногу в серф-позі: коліно зігнуте, руки спокійно перед собою.','Тримай корпус нерухомим, працюють стопа й стегно.','Коли легко, повільно присядь на 10–15 см і встань.'],
+    errors:['Пряма нога: баланс тримається тільки нею.','Руки махають.','Погляд у ноги замість вперед.']},
+  alt_jump_squat:{name:'Стрибок із присіду', type:'bw', sets:3, repsDefault:8, repsHint:'8',
+    setup:['Стопи на ширині плечей, місце для стрибка, руки перед грудьми.'],
+    steps:['Присядь до паралелі стегон, корпус рівний.','Вибухово стрибни вгору, випрямляючи тіло.','М\'яко приземлись на злегка зігнуті ноги й одразу в наступний присід.'],
+    errors:['Жорстке приземлення на прямі ноги.','Коліна завалюються всередину.','Робити до втоми: тут важлива швидкість, а не кількість.']},
+  alt_rowing:{name:'Гребний тренажер інтервали', type:'cardio', sets:3, repsDefault:20, repsHint:'20 с інтенсивно / 70 с легко', special:'airbike',
+    setup:['Стопи міцно зафіксовані, коліна зігнуті, спина рівна, руки тримають рукоять.','Опір середній, 4–5 з 10.'],
+    steps:['1 хв спокійно на вході, дихання рівне.','20 с інтенсивно: штовхни ногами, потім відкинь корпус і підтягни рукоять до низу грудей.','70 с легко, відновлення.','Повтори цикл 3 рази після берпі.','1 хв спокійно на виході.'],
+    errors:['Тягнеш руками раніше, ніж випрямив ноги.','Круглиш спину на початку руху.','Перший інтервал на максимум.']}
 };
 
 /* =====================================================================
@@ -926,8 +989,104 @@ const EXQ = {
   c_plank:'forearm plank proper form',
   c_superman:'superman exercise lower back',
   c_bosu:'bosu ball balance surf stance',
-  c_burpee:'burpee proper form'
+  c_burpee:'burpee proper form',
+  alt_smith_squat:'smith machine squat form',
+  alt_suitcase_carry:'suitcase carry one dumbbell',
+  alt_hip_thrust_bench:'dumbbell hip thrust bench form',
+  alt_single_leg_rdl:'single leg romanian deadlift dumbbell',
+  alt_reverse_lunge:'reverse lunge proper form',
+  alt_reverse_fly:'bent over dumbbell reverse fly form',
+  alt_overhead_triceps:'dumbbell overhead triceps extension',
+  alt_popup_bench:'incline pop up burpee surf bench',
+  alt_dead_hang:'dead hang pull up bar',
+  alt_bird_dog:'bird dog exercise form',
+  alt_single_leg_balance:'single leg balance foam pad',
+  alt_jump_squat:'jump squat proper form',
+  alt_rowing:'rowing machine proper form intervals'
 };
+
+/* =====================================================================
+   ALTERNATIVES: one swap per exercise, used when the main equipment is busy.
+   Same movement pattern and muscle groups, different machine or tool.
+===================================================================== */
+const ALT = {
+  /* Day A */
+  a1_goblet_squat:{id:'alt_smith_squat', why:'Та сама механіка присіду: навантаження на квадрицепси й сідниці. Машина замість вільної ваги, тож гантелі не потрібні.'},
+  a_side_plank:{id:'alt_suitcase_carry', why:'Той самий принцип: бічні м\'язи корпусу не дають тулубу нахилятись убік. Замість статичної планки це ходьба з гантеллю в одній руці.'},
+  a_hip_thrust:{id:'alt_hip_thrust_bench', why:'Той самий рух: розгинання тазу з упором лопаток, сідниці в стисканні вгорі. Замість тренажера гантель на стегнах і лава.'},
+  b2_dead_bug:{id:'c_plank', why:'Та сама робота кору проти прогину в попереку: прес тримає таз підкрученим. Планка проста, місця потребує менше.'},
+  b1_rdl:{id:'alt_single_leg_rdl', why:'Той самий hip hinge: відведення тазу назад, задня поверхня стегна й сідниці. На одній нозі біля стійки, лежак чи вага не потрібні, плюс баланс для серфа.'},
+  c1_split_squat:{id:'alt_reverse_lunge', why:'Та сама одностороння присідна схема: квадрицепс і сідниця однієї ноги. Без лави, ззаду стопа не фіксована, тож баланс працює ще більше.'},
+  a_hyperext:{id:'c_superman', why:'Ті самі м\'язи: розгиначі спини й сідниці в статичній роботі. Без тренажера, на килимку.'},
+  /* Day B */
+  b_plyo_pushup:{id:'c2_pushup', why:'Той самий жим від підлоги: груди, передня дельта, трицепс. Менше вибуховості, але виконуй підйом швидко.'},
+  b_chest_press:{id:'a1_incline_press', why:'Той самий жимовий рух: груди й трицепс. Замість тренажера гантелі на лаві, дещо більший акцент на верх грудей.'},
+  b_chest_row:{id:'a2_row', why:'Та сама горизонтальна тяга: широчайші, ромбоподібні, задня дельта. Упор коліном на лаву замінює опору грудьми.'},
+  b2_lat_pulldown:{id:'c_gravitron', why:'Та сама вертикальна тяга до грудей: широчайші й біцепс. Гравітрон допомагає противагою, тож чим більша вага, тим легше.'},
+  c1_face_pull:{id:'alt_reverse_fly', why:'Ті самі м\'язи: задні дельти й середина спини, зведення лопаток. Замість блоку гантелі в нахилі.'},
+  b_shoulder_machine:{id:'b1_shoulder_press', why:'Той самий жим угору: дельти й трицепс. Замість тренажера гантелі сидячи.'},
+  d1_triceps_pushdown:{id:'alt_overhead_triceps', why:'Те саме розгинання ліктів: трицепс. Замість блоку одна гантель над головою, з акцентом на довгу головку.'},
+  b_hyperext_light:{id:'c_superman', why:'Ті самі м\'язи: розгиначі спини й сідниці у легкому режимі. Без тренажера.'},
+  /* Day C */
+  c_popup:{id:'alt_popup_bench', why:'Той самий патерн поп-апу: відштовхування руками й підтягування ніг під себе. Руки на лаві, килимок не потрібен, рух легший.'},
+  b1_leg_press:{id:'a1_goblet_squat', why:'Той самий присідний рух: квадрицепси й сідниці. Замість тренажера гантель перед грудьми, додатково працює кор.'},
+  c_gravitron:{id:'b2_lat_pulldown', why:'Та сама вертикальна тяга: широчайші й біцепс. Замість гравітрона верхній блок, вага тут навпаки більша = важче.'},
+  d1_farmers_walk:{id:'alt_dead_hang', why:'Той самий акцент на хват і плечовий пояс. Замість гантелей вис на турніку, кор працює слабше.'},
+  c_plank:{id:'b2_dead_bug', why:'Та сама робота кору проти прогину в попереку. Dead bug додає рух рук і ніг, місця потребує так само мало.'},
+  c_superman:{id:'alt_bird_dog', why:'Ті самі м\'язи: розгиначі спини й сідниці у статиці, як у позиції гребка. Інший рух на килимку.'},
+  c_bosu:{id:'alt_single_leg_balance', why:'Той самий баланс стопи й стегна, серф-стійка. Замість BOSU подушка або килимок, на одній нозі.'},
+  c_burpee:{id:'alt_jump_squat', why:'Та сама вибухова робота ніг і стрибок угору. Без упору лежачи, простіше за технікою.'},
+  cardio_airbike:{id:'alt_rowing', why:'Ті самі інтервали 20/70 с із навантаженням на ноги й спину. Гребля ще й близька до гребка на дошці.'}
+};
+const effId = o => (session && session.alt && session.alt[o]) || o;
+/* a log id back to the exercise row it belongs to */
+function rowOf(id){
+  const ids=allExIds();
+  if(ids.includes(id)) return id;
+  return ids.find(o=>session.alt && session.alt[o]===id) || id;
+}
+function swapTo(orig){
+  if(!session.alt) session.alt={};
+  session.alt[orig]=ALT[orig].id;
+  saveSession();
+  refreshRow(orig);
+  renderExercise();
+  showToast('Замінено: '+EX[ALT[orig].id].name);
+}
+function swapBack(orig){
+  if(session.alt) delete session.alt[orig];
+  saveSession();
+  refreshRow(orig);
+  renderExercise();
+  showToast('Повернуто: '+EX[orig].name);
+}
+function refreshRow(orig){
+  const row=document.getElementById('exrow-'+orig);
+  if(row) row.querySelector('.name').textContent=EX[effId(orig)].name;
+  markRowComplete(orig);
+}
+function renderAltPanel(orig){
+  const a=ALT[orig];
+  const panel=document.getElementById('altPanel');
+  if(!a){ panel.innerHTML='<div class="alt-card"><p class="alt-why">Для цієї вправи заміни немає.</p></div>'; return; }
+  const swapped = effId(orig)===a.id;
+  const showId = a.id, ex=EX[showId], q=EXQ[showId]||ex.name;
+  const scheme=`${ex.sets} підходи × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
+  panel.innerHTML=`
+    <div class="alt-card">
+      <div class="alt-from">Якщо зайнято: ${EX[orig].name}</div>
+      <h3>${ex.name}</h3>
+      <div class="alt-scheme">${scheme}</div>
+      <p class="alt-why">${a.why}</p>
+      <div class="media-row">${mediaLinks(q,'media-link')}</div>
+      ${swapped
+        ? `<div class="alt-state">Зараз ти робиш заміну.</div><button class="ghost-cta" style="margin-top:10px" onclick="swapBack('${orig}')">Повернути ${EX[orig].name}</button>`
+        : `<button class="big-cta" style="margin-top:12px" onclick="swapTo('${orig}')">Замінити на цю вправу</button>`}
+    </div>
+    <div class="cue-block"><h4>Підготовка</h4><ul>${ex.setup.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    <div class="cue-block"><h4>Виконання</h4><ul>${ex.steps.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    <div class="cue-block warn"><h4>Типові помилки</h4><ul>${ex.errors.map(s=>`<li>${s}</li>`).join('')}</ul></div>`;
+}
 /* warm-up / cool-down: q = search, sec = seconds per hold, sides = 2 for left/right, rounds */
 const ITEMQ = {
   'Кардіо активація':{q:'stationary bike warm up', sec:210},
@@ -1198,14 +1357,14 @@ function buildExerciseList(){
     lbl.textContent=ss.label;
     wrap.appendChild(lbl);
     ss.ids.forEach(id=>{
-      const ex=EX[id];
+      const ex=EX[effId(id)];
       const row=document.createElement('button');
       row.className='ex-row';
       row.id='exrow-'+id;
       row.onclick=()=>openExercise(id);
       row.innerHTML=`<div class="ring">${ex.sets}</div>
         <div class="name">${ex.name}</div>
-        <div class="meta">${lastWeightLabel(id)}</div>
+        <div class="meta">${lastWeightLabel(effId(id))}</div>
         <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>`;
       wrap.appendChild(row);
     });
@@ -1225,7 +1384,8 @@ function renderDots(){
   const ids=allExIds();
   const wrap=document.getElementById('listDots');
   wrap.innerHTML='';
-  ids.forEach(id=>{
+  ids.forEach(o=>{
+    const id=effId(o);
     const i=document.createElement('i');
     const log=session.setLog[id];
     const ex=EX[id];
@@ -1233,8 +1393,10 @@ function renderDots(){
     wrap.appendChild(i);
   });
 }
-function markRowComplete(id){
-  const row=document.getElementById('exrow-'+id);
+function markRowComplete(given){
+  const orig=rowOf(given);
+  const id=effId(orig);
+  const row=document.getElementById('exrow-'+orig);
   const log=session.setLog[id]||[];
   const ex=EX[id];
   const done=log.filter(s=>s&&s.done).length;
@@ -1262,10 +1424,12 @@ function findSuperset(id){
   return day.supersets.find(s=>s.ids.includes(id));
 }
 function renderExercise(){
-  const id=currentExId();
+  const orig=currentExId();
+  const id=effId(orig);
   const ex=EX[id];
   document.getElementById('exTitle').textContent=ex.name;
-  document.getElementById('exSuperset').textContent=findSuperset(id).label;
+  document.getElementById('exSuperset').textContent=findSuperset(orig).label + (id!==orig?' · заміна':'');
+  renderAltPanel(orig);
   document.getElementById('exScheme').textContent = `${ex.sets} підходи × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
 
   document.getElementById('techSetup').innerHTML = ex.setup.map(s=>`<li>${s}</li>`).join('');
@@ -1306,7 +1470,7 @@ function switchTab(t){
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.panel===t));
   const hint=document.querySelector('#screen-exercise .swipe-hint');
-  if(hint) hint.textContent = t==='do' ? 'Свайп вліво, щоб глянути техніку' : 'Свайп вправо, щоб повернутись до підходів';
+  if(hint) hint.textContent = t==='do' ? 'Свайп вліво: техніка, далі заміна' : t==='tech' ? 'Свайп вліво: заміна · вправо: підходи' : 'Свайп вправо: техніка';
 }
 
 function renderSetCards(id){
@@ -1735,15 +1899,20 @@ function buildExportText(){
   ['A','B','C'].forEach(k=>{
     const day=DAYS[k];
     lines.push(`== ${day.label} (${day.title}) — востаннє ${state.lastDay[k]?fmtDate(state.lastDay[k]):'ще не виконано'} ==`);
-    day.supersets.flatMap(s=>s.ids).forEach(id=>{
-      const hist=state.history[id]||[];
-      if(!hist.length) return;
-      const recent=hist.slice(-3);
-      lines.push(`- ${EX[id].name}: ${recent.map(fmtExportSession(id)).join(' | ')}`);
+    day.supersets.flatMap(s=>s.ids).forEach(o=>{
+      const primaryIds=new Set(['A','B','C'].flatMap(k=>DAYS[k].supersets.flatMap(s=>s.ids)));
+      [[o,''],[ALT[o]&&ALT[o].id,' (заміна, коли основна зайнята)']].forEach(([id,tag])=>{
+        if(!id || (tag && primaryIds.has(id))) return;
+        const hist=state.history[id]||[];
+        if(!hist.length) return;
+        const recent=hist.slice(-3);
+        lines.push(`- ${EX[id].name}${tag}: ${recent.map(fmtExportSession(id)).join(' | ')}`);
+      });
     });
     lines.push('');
   });
   const inProgram=new Set(['A','B','C'].flatMap(k=>DAYS[k].supersets.flatMap(s=>s.ids)));
+  Object.values(ALT).forEach(a=>inProgram.add(a.id));
   const old=Object.keys(state.history).filter(id=>!inProgram.has(id)&&EX[id]&&(state.history[id]||[]).length);
   if(old.length){
     lines.push('== Вправи, яких уже немає в програмі ==');
@@ -2113,8 +2282,10 @@ document.addEventListener('visibilitychange',()=>{
     if(!tracking) return;
     const dx=e.changedTouches[0].clientX-sx, dy=e.changedTouches[0].clientY-sy;
     if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
-      if(dx<0 && currentTab==='do') switchTab('tech');
-      else if(dx>0 && currentTab==='tech') switchTab('do');
+      const order=['do','tech','alt'];
+      const k=order.indexOf(currentTab);
+      if(dx<0 && k<order.length-1) switchTab(order[k+1]);
+      else if(dx>0 && k>0) switchTab(order[k-1]);
     }
   },{passive:true});
 })();
