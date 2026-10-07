@@ -35,9 +35,9 @@ main() {
   if [ -n "$SRC_DIR" ]; then
     install -m 0644 "$SRC_DIR/server.js" "$APP/server.js"
   else
-    curl -fsSL "$RAW/server.js" -o "$APP/server.js.new"
-    node --check "$APP/server.js.new"
-    mv "$APP/server.js.new" "$APP/server.js"
+    curl -fsSL "$RAW/server.js" -o "$APP/server-next.js"
+    node --check "$APP/server-next.js"
+    mv "$APP/server-next.js" "$APP/server.js"
   fi
 
   echo "==> Token"
