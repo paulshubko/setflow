@@ -281,6 +281,15 @@ button{font-family:inherit;}
 .ex-hero{margin-top:4px;}
 .ex-hero h2{font-size:23px;}
 .ex-hero .scheme{font-size:13px;color:var(--text-dim);font-weight:700;margin-top:4px;}
+.ex-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+/* exercise pictures: two photos from the home-server shed, cross-faded into a short loop */
+.anim{position:relative;margin:12px 0 0;aspect-ratio:3/2;border-radius:var(--radius-m);overflow:hidden;background:#000;border:1px solid var(--border);}
+.anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.anim img.b{animation:animflip 1.8s ease-in-out infinite;}
+@keyframes animflip{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
+.anim figcaption{position:absolute;left:0;right:0;bottom:0;padding:4px 8px;font-size:11px;line-height:1.3;color:#fff;background:rgba(0,0,0,.6);}
+.anim.sm{width:96px;flex:none;margin:0;border-radius:10px;cursor:pointer;}
+@media (prefers-reduced-motion:reduce){.anim img.b{animation:none;opacity:0;}}
 
 .tabs{display:flex;gap:6px;margin:16px 0 4px;background:var(--surface-2);padding:4px;border-radius:12px;}
 .tab{flex:1;padding:9px 4px;border-radius:9px;font-size:12.5px;font-weight:700;color:var(--text-dim);text-align:center;background:none;border:none;}
@@ -566,6 +575,7 @@ canvas{width:100%;display:block;}
 
   <div class="ex-hero">
     <div class="scheme" id="exScheme"></div>
+    <div id="exThumb"></div>
   </div>
 
   <div class="tabs">
@@ -585,6 +595,7 @@ canvas{width:100%;display:block;}
   </div>
 
   <div class="tab-panel" data-panel="tech">
+    <div id="techAnim"></div>
     <div class="media-row" id="techMedia"></div>
     <div class="media-note">Відкриється в новій вкладці. Повертайся в SetFlow з перемикача програм, прогрес не загубиться.</div>
     <div class="cue-block"><h4>Підготовка</h4><ul id="techSetup"></ul></div>
@@ -1077,6 +1088,7 @@ function renderAltPanel(orig){
       <div class="alt-from">Якщо зайнято: ${EX[orig].name}</div>
       <h3>${ex.name}</h3>
       <div class="alt-scheme">${scheme}</div>
+      ${animHtml(showId)}
       <p class="alt-why">${a.why}</p>
       <div class="media-row">${mediaLinks(q,'media-link')}</div>
       ${swapped
@@ -1122,6 +1134,75 @@ const ICON_TIMER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 function mediaLinks(q, cls){
   return `<a class="${cls} video" href="${ytUrl(q)}" target="_blank" rel="noopener">${ICON_PLAY} Відео</a>
           <a class="${cls}" href="${imgUrl(q)}" target="_blank" rel="noopener">${ICON_IMG} Фото</a>`;
+}
+/* ---------- Exercise pictures ----------
+   Two photos per exercise (start and end position) cross-fade into a short loop.
+   They are NOT stored in this repo: they come from the home server (the shed, path /shed/img/),
+   so the base address is taken from the sync settings. Without a connected server nothing is shown
+   and the video/photo links keep working. PIC maps an exercise id to an id in the exercise catalog. */
+const PIC = {
+  a1_goblet_squat:'Goblet_Squat',
+  a2_hip_abduction:'Side_Leg_Raises',
+  b1_rdl:'Stiff-Legged_Dumbbell_Deadlift',
+  b2_dead_bug:'Dead_Bug',
+  d2_dead_bug:'Dead_Bug',
+  c1_split_squat:'Split_Squat_with_Dumbbells',
+  c2_glute_bridge:'Single_Leg_Glute_Bridge',
+  core_pallof:'Pallof_Press',
+  a1_incline_press:'Incline_Dumbbell_Press',
+  a2_row:'One-Arm_Dumbbell_Row',
+  b1_shoulder_press:'Seated_Dumbbell_Press',
+  b2_lat_pulldown:'Wide-Grip_Lat_Pulldown',
+  c1_face_pull:'Face_Pull',
+  c2_bicep_curl:'Seated_Dumbbell_Curl',
+  d1_triceps_pushdown:'Triceps_Pushdown',
+  b1_leg_press:'Leg_Press',
+  c1_seated_row:'Seated_Cable_Rows',
+  c2_pushup:'Pushups',
+  d1_farmers_walk:'Farmers_Walk',
+  a_side_plank:'Side_Bridge',
+  a_hip_thrust:'Barbell_Hip_Thrust',
+  a_hyperext:'Hyperextensions_Back_Extensions',
+  b_hyperext_light:'Hyperextensions_Back_Extensions',
+  b_plyo_pushup:'Plyo_Push-up',
+  b_chest_press:'Leverage_Chest_Press',
+  b_chest_row:'Leverage_Iso_Row',
+  b_shoulder_machine:'Leverage_Shoulder_Press',
+  c_gravitron:'Band_Assisted_Pull-Up',
+  c_plank:'Plank',
+  c_superman:'Superman',
+  alt_smith_squat:'Smith_Machine_Squat',
+  alt_suitcase_carry:'Farmers_Walk',
+  alt_hip_thrust_bench:'Barbell_Hip_Thrust',
+  alt_single_leg_rdl:'Kettlebell_One-Legged_Deadlift',
+  alt_reverse_lunge:'Dumbbell_Rear_Lunge',
+  alt_reverse_fly:'Reverse_Flyes',
+  alt_overhead_triceps:'Standing_One-Arm_Dumbbell_Triceps_Extension',
+  alt_jump_squat:'Freehand_Jump_Squat',
+  alt_rowing:'Rowing_Stationary'
+};
+/* approximate matches: same movement, but equipment or variant may differ from the gym */
+const PIC_APPROX = new Set(['a2_hip_abduction','c1_split_squat','a_hip_thrust','b_chest_row','c_gravitron','alt_suitcase_carry','alt_hip_thrust_bench']);
+function picBase(){ return syncCfg && syncCfg.url ? syncCfg.url.replace(/\/+$/,'')+'/shed/img/' : ''; }
+function picUrl(id,n){ return picBase()+encodeURIComponent(PIC[id])+'/'+n+'.jpg'; }
+function animHtml(id, small){
+  if(!PIC[id] || !picBase()) return '';
+  const note = !small && PIC_APPROX.has(id) ? '<figcaption>Орієнтир по руху: обладнання або варіант у залі можуть відрізнятись</figcaption>' : '';
+  return `<figure class="anim${small?' sm':''}"${small?` onclick="switchTab('tech')"`:''}>
+    <img src="${picUrl(id,0)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.closest('.anim').remove()">
+    <img class="b" src="${picUrl(id,1)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.remove()">${note}</figure>`;
+}
+/* warm the picture cache once per set of exercises so they also work offline in the gym */
+async function prefetchPics(){
+  const base=picBase(); if(!base || !navigator.onLine) return;
+  const keys=[...new Set(Object.values(PIC))].sort();
+  const stamp=base+'|'+keys.join(',');
+  try{ if(localStorage.getItem('setflow.pics')===stamp) return; }catch(e){}
+  let ok=true;
+  for(const k of keys){ for(const n of [0,1]){
+    try{ const r=await fetch(base+encodeURIComponent(k)+'/'+n+'.jpg',{mode:'cors'}); if(!r.ok) ok=false; }catch(e){ ok=false; }
+  } }
+  if(ok){ try{ localStorage.setItem('setflow.pics',stamp); }catch(e){} }
 }
 function fmtSec(s){ return s>=60 ? (Math.floor(s/60)+':'+String(s%60).padStart(2,'0')) : s+' с'; }
 
@@ -1438,6 +1519,8 @@ function renderExercise(){
   const q = EXQ[id] || ex.name;
   document.getElementById('techMedia').innerHTML = mediaLinks(q,'media-link');
   document.getElementById('doQuickLinks').innerHTML = mediaLinks(q,'mini-link');
+  document.getElementById('techAnim').innerHTML = animHtml(id);
+  document.getElementById('exThumb').innerHTML = animHtml(id,true);
 
   if(!session.setLog[id]){
     session.setLog[id] = new Array(ex.sets).fill(null).map(()=>({
@@ -2185,7 +2268,7 @@ async function saveSyncSettings(){
   syncStatus={state:'idle', at:0, msg:''};
   await syncNow();
   renderStorageStatus();
-  if(syncStatus.state==='ok') showToast('Синхронізація працює');
+  if(syncStatus.state==='ok'){ showToast('Синхронізація працює'); prefetchPics(); }
 }
 function disconnectSync(){
   saveSyncCfg(null);
@@ -2302,7 +2385,8 @@ renderHome();
   syncNow();
 })();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncNow(); });
-window.addEventListener('online',()=>syncNow());
+window.addEventListener('online',()=>{ syncNow(); setTimeout(prefetchPics,2000); });
+setTimeout(prefetchPics,4000);
 window.addEventListener('hashchange',()=>{ readSyncLink(); syncNow(); });
 /* Flush on app close / switch (iOS may kill the page without warning) */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ if(session) saveSession(); else saveState(); } });
