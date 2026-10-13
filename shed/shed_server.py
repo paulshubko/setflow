@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tiny read-only static server for the SetFlow shed (exercise images + catalog).
 
-Serves only .jpg and .json files under --root, adds CORS so the PWA on
+Serves only .jpg, .webp and .json files under --root, adds CORS so the PWA on
 GitHub Pages can cache images from here, and accepts URLs both with and
 without the /shed prefix (Tailscale may or may not strip the mount path).
 Standard library only.
@@ -11,7 +11,7 @@ import os
 import posixpath
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-ALLOWED = (".jpg", ".json")
+ALLOWED = (".jpg", ".webp", ".json")
 PREFIX = "/shed"
 
 
@@ -51,7 +51,7 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
-        if self.path.lower().endswith(".jpg"):
+        if self.path.lower().endswith((".jpg", ".webp")):
             self.send_header("Cache-Control", "public, max-age=31536000, immutable")
         else:
             self.send_header("Cache-Control", "no-cache")

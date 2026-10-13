@@ -289,6 +289,9 @@ button{font-family:inherit;}
 @keyframes animflip{0%,40%{opacity:0}50%,90%{opacity:1}100%{opacity:0}}
 .anim figcaption{position:absolute;left:0;right:0;bottom:0;padding:4px 8px;font-size:11px;line-height:1.3;color:#fff;background:rgba(0,0,0,.6);}
 .anim.sm{width:96px;flex:none;margin:0;border-radius:10px;cursor:pointer;}
+.anim.clip{background:#f4f3f0;max-height:340px;}
+.anim.clip.sm{width:80px;aspect-ratio:1/1;max-height:none;}
+.anim-credit{font-size:11px;line-height:1.35;color:var(--text-dim);margin-top:6px;}
 @media (prefers-reduced-motion:reduce){.anim img.b{animation:none;opacity:0;}}
 
 .tabs{display:flex;gap:6px;margin:16px 0 4px;background:var(--surface-2);padding:4px;border-radius:12px;}
@@ -1183,25 +1186,63 @@ const PIC = {
 };
 /* approximate matches: same movement, but equipment or variant may differ from the gym */
 const PIC_APPROX = new Set(['a2_hip_abduction','c1_split_squat','a_hip_thrust','b_chest_row','c_gravitron','alt_suitcase_carry','alt_hip_thrust_bench']);
-function picBase(){ return syncCfg && syncCfg.url ? syncCfg.url.replace(/\/+$/,'')+'/shed/img/' : ''; }
+function shedRoot(){ return syncCfg && syncCfg.url ? syncCfg.url.replace(/\/+$/,'')+'/shed/' : ''; }
+function picBase(){ const r=shedRoot(); return r ? r+'img/' : ''; }
 function picUrl(id,n){ return picBase()+encodeURIComponent(PIC[id])+'/'+n+'.jpg'; }
+/* Looping clips from RepDB (CC BY-NC 4.0: personal use only, credit required). One animated WebP per
+   exercise in <server>/shed/anim/. They replace the two-photo loop for the exercises listed here; if a
+   clip is not on the server (yet) or cannot be loaded, the photos are shown instead.
+   [file name, approximate match (1) or exact (0), width, height] */
+const ANIM = {
+  alt_rowing:['rowing-machine',0,480,310],
+  b2_lat_pulldown:['reverse-grip-lat-pulldown',1,341,480],
+  d1_triceps_pushdown:['single-arm-tricep-pushdown',1,330,480],
+  c_gravitron:['pull-up',1,292,480],
+  alt_reverse_lunge:['barbell-reverse-lunge',1,379,480],
+  a2_row:['one-arm-kettlebell-row',1,480,433]
+};
+function animUrl(id){ return shedRoot()+'anim/'+encodeURIComponent(ANIM[id][0])+'.webp'; }
+const APPROX_NOTE='Орієнтир по руху: обладнання або варіант у залі можуть відрізнятись';
+function photoInner(id, small){
+  const note = !small && PIC_APPROX.has(id) ? `<figcaption>${APPROX_NOTE}</figcaption>` : '';
+  return `<img src="${picUrl(id,0)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.closest('.anim').remove()">
+    <img class="b" src="${picUrl(id,1)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.remove()">${note}`;
+}
 function animHtml(id, small){
-  if(!PIC[id] || !picBase()) return '';
-  const note = !small && PIC_APPROX.has(id) ? '<figcaption>Орієнтир по руху: обладнання або варіант у залі можуть відрізнятись</figcaption>' : '';
-  return `<figure class="anim${small?' sm':''}"${small?` onclick="switchTab('tech')"`:''}>
-    <img src="${picUrl(id,0)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.closest('.anim').remove()">
-    <img class="b" src="${picUrl(id,1)}" crossorigin="anonymous" decoding="async" alt="" onerror="this.remove()">${note}</figure>`;
+  if(!shedRoot()) return '';
+  const sm = small ? ' sm' : '', click = small ? ` onclick="switchTab('tech')"` : '';
+  if(ANIM[id]){
+    const a=ANIM[id];
+    const style = small ? '' : ` style="aspect-ratio:${a[2]}/${a[3]}"`;
+    const credit = small ? '' : `<div class="anim-credit">${a[1] ? APPROX_NOTE+'. ' : ''}Анімація: RepDB (repdb.co)</div>`;
+    return `<figure class="anim clip${sm}" data-id="${id}"${style}${click}>
+      <img src="${animUrl(id)}" crossorigin="anonymous" decoding="async" alt="" onerror="animFallback(this)"></figure>${credit}`;
+  }
+  if(!PIC[id]) return '';
+  return `<figure class="anim${sm}" data-id="${id}"${click}>${photoInner(id,small)}</figure>`;
+}
+/* the clip could not be loaded (not on the server yet, or offline and not cached): show the photos instead */
+function animFallback(img){
+  const f=img.closest('.anim'); if(!f) return;
+  const id=f.dataset.id, small=f.classList.contains('sm');
+  const credit=f.nextElementSibling; if(credit && credit.classList.contains('anim-credit')) credit.remove();
+  if(!PIC[id]){ f.remove(); return; }
+  f.classList.remove('clip'); f.removeAttribute('style'); f.innerHTML=photoInner(id,small);
 }
 /* warm the picture cache once per set of exercises so they also work offline in the gym */
 async function prefetchPics(){
-  const base=picBase(); if(!base || !navigator.onLine) return;
-  const keys=[...new Set(Object.values(PIC))].sort();
-  const stamp=base+'|'+keys.join(',');
+  const root=shedRoot(); if(!root || !navigator.onLine) return;
+  const urls=[];
+  for(const k of new Set(Object.values(PIC))) for(const n of [0,1]) urls.push(root+'img/'+encodeURIComponent(k)+'/'+n+'.jpg');
+  for(const v of Object.values(ANIM)) urls.push(root+'anim/'+encodeURIComponent(v[0])+'.webp');
+  urls.sort();
+  let h=5381; const all=urls.join(','); for(let i=0;i<all.length;i++) h=((h<<5)+h+all.charCodeAt(i))|0;
+  const stamp=root+'|'+urls.length+'|'+(h>>>0);
   try{ if(localStorage.getItem('setflow.pics')===stamp) return; }catch(e){}
   let ok=true;
-  for(const k of keys){ for(const n of [0,1]){
-    try{ const r=await fetch(base+encodeURIComponent(k)+'/'+n+'.jpg',{mode:'cors'}); if(!r.ok) ok=false; }catch(e){ ok=false; }
-  } }
+  for(const u of urls){
+    try{ const r=await fetch(u,{mode:'cors'}); if(!r.ok) ok=false; }catch(e){ ok=false; }
+  }
   if(ok){ try{ localStorage.setItem('setflow.pics',stamp); }catch(e){} }
 }
 function fmtSec(s){ return s>=60 ? (Math.floor(s/60)+':'+String(s%60).padStart(2,'0')) : s+' с'; }

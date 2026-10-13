@@ -1,7 +1,7 @@
 /* SetFlow service worker: offline app shell + cached fonts.
    Bump VERSION on every release so phones pick up the new files. */
-const VERSION = 'setflow-v5';
-/* Exercise pictures from the home server (path /shed/img/). Separate cache that survives releases,
+const VERSION = 'setflow-v6';
+/* Exercise photos and clips from the home server (paths /shed/img/ and /shed/anim/). Separate cache that survives releases,
    so the photos are not downloaded again after every app update. */
 const IMG_CACHE = 'setflow-pics-v1';
 const SHELL = [
@@ -45,7 +45,7 @@ self.addEventListener('fetch', event => {
   }
 
   // Exercise pictures from the home server: cache first, only successful (CORS) responses are stored
-  if (url.pathname.includes('/shed/img/')) {
+  if (url.pathname.includes('/shed/img/') || url.pathname.includes('/shed/anim/')) {
     event.respondWith(
       caches.open(IMG_CACHE).then(c =>
         c.match(req).then(hit => hit || fetch(req).then(res => {

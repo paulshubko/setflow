@@ -38,6 +38,13 @@ for f in shed_server.py build_catalog.py; do
   if [ -n "$HERE" ] && [ -f "$HERE/$f" ]; then cp "$HERE/$f" "$SHED/$f"; else curl -fsSL "$RAW/$f" -o "$SHED/$f"; fi
 done
 ln -sfn "$SHED/source/exercises" "$SHED/public/img"
+
+echo "==> animations (RepDB, CC BY-NC 4.0, personal non-commercial use)"
+mkdir -p "$SHED/public/anim"
+for f in rowing-machine reverse-grip-lat-pulldown single-arm-tricep-pushdown pull-up barbell-reverse-lunge one-arm-kettlebell-row; do
+  if [ -n "$HERE" ] && [ -f "$HERE/anim/$f.webp" ]; then cp "$HERE/anim/$f.webp" "$SHED/public/anim/$f.webp"; else curl -fsSL "$RAW/anim/$f.webp" -o "$SHED/public/anim/$f.webp"; fi
+done
+if [ -n "$HERE" ] && [ -f "$HERE/anim/ATTRIBUTION.md" ]; then cp "$HERE/anim/ATTRIBUTION.md" "$SHED/public/anim/ATTRIBUTION.md"; else curl -fsSL "$RAW/anim/ATTRIBUTION.md" -o "$SHED/public/anim/ATTRIBUTION.md"; fi
 python3 "$SHED/build_catalog.py" "$SHED/source" "$SHED/public/catalog.json" "$COMMIT"
 chmod -R a+rX "$SHED"
 
@@ -69,6 +76,7 @@ EOF
   echo "==> local check"
   curl -fsS "http://127.0.0.1:$PORT/catalog.json" -o /dev/null -w "catalog.json: HTTP %{http_code}, %{size_download} bytes\n"
   curl -fsS "http://127.0.0.1:$PORT/img/Goblet_Squat/0.jpg" -o /dev/null -w "photo: HTTP %{http_code}, %{size_download} bytes\n"
+  curl -fsS "http://127.0.0.1:$PORT/anim/pull-up.webp" -o /dev/null -w "animation: HTTP %{http_code}, %{size_download} bytes\n"
 fi
 du -sh "$SHED/source" | sed 's/^/disk used: /'
 
