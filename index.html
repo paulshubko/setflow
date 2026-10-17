@@ -468,6 +468,13 @@ canvas{width:100%;display:block;}
   width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
   padding:12px;font-size:16px;color:var(--text);font-family:inherit;
 }
+.ac-tabs{display:flex;gap:6px;margin-top:14px;background:var(--surface-2);border-radius:12px;padding:4px;}
+.ac-tabs button{flex:1;border:0;background:transparent;color:var(--text-dim);font:inherit;font-weight:700;font-size:13.5px;padding:10px;border-radius:9px;}
+.ac-tabs button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.ac-err{margin-top:12px;font-size:13px;font-weight:600;color:var(--accent);line-height:1.4;}
+.ac-more{margin-top:14px;font-size:13px;color:var(--text-dim);}
+.ac-more summary{cursor:pointer;font-weight:700;padding:6px 0;}
+.acct-btn{margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:999px;}
 .import-confirm{background:var(--surface-2);border-radius:12px;padding:12px;margin-top:12px;}
 .import-confirm p{margin:0;color:var(--text);}
 .test-card{
@@ -489,7 +496,7 @@ canvas{width:100%;display:block;}
 
 <!-- ============ HOME ============ -->
 <section class="screen active" id="screen-home">
-  <div class="topbar"><h1>SetFlow</h1></div>
+  <div class="topbar"><h1>SetFlow</h1><button class="acct-btn" id="acctBtn" onclick="openSync()">Увійти</button></div>
   <p style="font-size:13px;color:var(--text-dim);margin-top:-4px;">Три дні на тиждень · рекомпозиція</p>
   <div class="storage-status ok" id="storageStatus">Завантаження…</div>
 
@@ -517,7 +524,7 @@ canvas{width:100%;display:block;}
     <h3>Резервна копія</h3>
     <p>Збережи файл з усією історією в «Файли» або надішли собі в Telegram. Знадобиться, якщо зміниш телефон або очистиш Safari.</p>
     <button class="big-cta" onclick="exportBackup()">Зберегти копію</button>
-    <button class="ghost-cta" onclick="closeBackup();openSync()">Синхронізація з сервером</button>
+    <button class="ghost-cta" onclick="closeBackup();openSync()">Акаунт і синхронізація</button>
     <button class="ghost-cta" onclick="document.getElementById('importFile').click()">Відновити з файлу</button>
     <input type="file" id="importFile" accept="application/json,.json" hidden onchange="importBackup(this)">
     <div class="import-confirm" id="importConfirm" hidden>
@@ -534,16 +541,38 @@ canvas{width:100%;display:block;}
 
 <div class="fb-sheet" id="syncSheet" hidden>
   <div class="fb-panel">
-    <h3>Синхронізація з сервером</h3>
-    <p>Дані тренувань автоматично копіюються на твій домашній сервер і підтягуються на інших пристроях. Без інтернету все працює як раніше.</p>
-    <label class="sync-label" for="syncUrl">Адреса сервера</label>
-    <input class="sync-input" id="syncUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://macmini.xxxx.ts.net">
-    <label class="sync-label" for="syncToken">Токен</label>
-    <input class="sync-input" id="syncToken" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="токен з установки сервера">
-    <div class="storage-status ok" id="syncInfo" style="margin-top:12px;"></div>
-    <button class="big-cta" onclick="saveSyncSettings()">Підключити й синхронізувати</button>
-    <button class="ghost-cta" onclick="syncNow().then(renderSyncStatus)">Синхронізувати зараз</button>
-    <button class="ghost-cta" id="syncOff" onclick="disconnectSync()" hidden>Вимкнути синхронізацію</button>
+    <h3 id="acTitle">Акаунт</h3>
+    <p id="acLead">Увійди, і твої тренування зберігатимуться на сервері окремо від інших користувачів. Без інтернету все працює як раніше.</p>
+
+    <div id="acIn" hidden>
+      <div class="storage-status ok" id="acWho" style="margin-top:12px;"></div>
+      <div class="storage-status ok" id="syncInfo" style="margin-top:8px;"></div>
+      <button class="big-cta" onclick="syncNow().then(renderSyncStatus)">Синхронізувати зараз</button>
+      <button class="ghost-cta" onclick="logoutAccount()">Вийти з акаунта</button>
+    </div>
+
+    <div id="acOut">
+      <div class="ac-tabs">
+        <button id="acTabLogin" class="on" onclick="acMode('login')">Вхід</button>
+        <button id="acTabReg" onclick="acMode('register')">Створити акаунт</button>
+      </div>
+      <label class="sync-label" for="acUser">Логін</label>
+      <input class="sync-input" id="acUser" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="латиницею, 3-32 символи">
+      <label class="sync-label" for="acPass">Пароль</label>
+      <input class="sync-input" id="acPass" type="password" autocomplete="current-password" placeholder="мінімум 8 символів">
+      <div id="acErr" class="ac-err" hidden></div>
+      <button class="big-cta" id="acGo" onclick="submitAccount()">Увійти</button>
+      <button class="ghost-cta" id="acSkip" onclick="skipLogin()">Працювати без акаунта (дані лише на телефоні)</button>
+    </div>
+
+    <details class="ac-more" id="acMore">
+      <summary>Сервер</summary>
+      <label class="sync-label" for="syncUrl">Адреса сервера</label>
+      <input class="sync-input" id="syncUrl" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://macmini.xxxx.ts.net">
+      <label class="sync-label" for="syncToken">Старий токен (необов'язково)</label>
+      <input class="sync-input" id="syncToken" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="лише якщо входиш без логіна">
+      <button class="ghost-cta" onclick="saveTokenLogin()">Підключитись за токеном</button>
+    </details>
     <button class="ghost-cta" onclick="closeSync()">Закрити</button>
   </div>
 </div>
@@ -1255,6 +1284,9 @@ let state = loadState();
 
 /* Storage: IndexedDB is the main store, localStorage is a fast mirror.
    On start both are read and the most recently saved copy wins. */
+/* The program (days, warm-ups, exercises) belongs to the account: state.program.
+   Without one the built-in DAYS template is used (this is the original A/B/C program). */
+function PROG(){ return (state && state.program && Object.keys(state.program).length) ? state.program : DAYS; }
 function emptyState(){ return { weights:{}, lastDay:{}, history:{}, streak:0, lastSessionDate:null, savedAt:0 }; }
 function loadState(){
   try{
@@ -1371,7 +1403,7 @@ function goto(name){
    HOME
 ===================================================================== */
 function nextDayKey(){
-  const order=['A','B','C'];
+  const order=Object.keys(PROG());
   let last = order.map(k=>({k,d:state.lastDay[k]||''})).sort((a,b)=>a.d.localeCompare(b.d));
   return last[0].k;
 }
@@ -1379,8 +1411,8 @@ function renderHome(){
   const grid=document.getElementById('dayGrid');
   const next=nextDayKey();
   grid.innerHTML='';
-  ['A','B','C'].forEach(k=>{
-    const day=DAYS[k];
+  Object.keys(PROG()).forEach(k=>{
+    const day=PROG()[k];
     const last=state.lastDay[k];
     const isNext = k===next;
     const el=document.createElement('button');
@@ -1407,7 +1439,7 @@ function fmtDate(d){
 ===================================================================== */
 function startDay(key){
   session = { dayKey:key, exIndex:0, warmupDone:{}, setLog:{} };
-  const day=DAYS[key];
+  const day=PROG()[key];
   document.getElementById('warmupTitle').textContent = day.label + ' · Розминка';
   document.getElementById('warmupSub').textContent = day.title;
   session.cooldownDone = {};
@@ -1464,11 +1496,11 @@ function finishWarmup(){
   goto('list');
 }
 function allExIds(){
-  const day=DAYS[session.dayKey];
+  const day=PROG()[session.dayKey];
   return day.supersets.flatMap(s=>s.ids);
 }
 function buildExerciseList(){
-  const day=DAYS[session.dayKey];
+  const day=PROG()[session.dayKey];
   document.getElementById('listTitle').textContent = day.label;
   document.getElementById('listSub').textContent = day.title;
   const wrap=document.getElementById('exList');
@@ -1542,7 +1574,7 @@ function openExercise(id){
 }
 function currentExId(){ return allExIds()[session.exIndex]; }
 function findSuperset(id){
-  const day=DAYS[session.dayKey];
+  const day=PROG()[session.dayKey];
   return day.supersets.find(s=>s.ids.includes(id));
 }
 function renderExercise(){
@@ -1807,7 +1839,7 @@ function nextExercise(){
 
 /* ---------- Cooldown / summary ---------- */
 function renderCooldownScreenSetup(){
-  const day=DAYS[session.dayKey];
+  const day=PROG()[session.dayKey];
   if(!session.cooldownDone) session.cooldownDone={};
   renderChecklist(document.getElementById('cooldownList'), day.cooldown, session.cooldownDone);
 }
@@ -1815,7 +1847,7 @@ const _origGoto=goto;
 goto=function(name){ if(name==='cooldown') renderCooldownScreenSetup(); _origGoto(name); };
 
 function finishSession(){
-  const day=DAYS[session.dayKey];
+  const day=PROG()[session.dayKey];
   const date=todayStr();
   let totalSets=0, totalVolume=0;
   Object.entries(session.setLog).forEach(([id,sets])=>{
@@ -2020,11 +2052,11 @@ function buildExportText(){
   lines.push('Дата експорту: '+todayStr());
   lines.push('Формат: вага×повтори по підходах; ! важко, ↓ легко; с секунди, м метри.');
   lines.push('');
-  ['A','B','C'].forEach(k=>{
-    const day=DAYS[k];
+  Object.keys(PROG()).forEach(k=>{
+    const day=PROG()[k];
     lines.push(`== ${day.label} (${day.title}) — востаннє ${state.lastDay[k]?fmtDate(state.lastDay[k]):'ще не виконано'} ==`);
     day.supersets.flatMap(s=>s.ids).forEach(o=>{
-      const primaryIds=new Set(['A','B','C'].flatMap(k=>DAYS[k].supersets.flatMap(s=>s.ids)));
+      const primaryIds=new Set(Object.keys(PROG()).flatMap(k=>PROG()[k].supersets.flatMap(s=>s.ids)));
       [[o,''],[ALT[o]&&ALT[o].id,' (заміна, коли основна зайнята)']].forEach(([id,tag])=>{
         if(!id || (tag && primaryIds.has(id))) return;
         const hist=state.history[id]||[];
@@ -2035,7 +2067,7 @@ function buildExportText(){
     });
     lines.push('');
   });
-  const inProgram=new Set(['A','B','C'].flatMap(k=>DAYS[k].supersets.flatMap(s=>s.ids)));
+  const inProgram=new Set(Object.keys(PROG()).flatMap(k=>PROG()[k].supersets.flatMap(s=>s.ids)));
   Object.values(ALT).forEach(a=>inProgram.add(a.id));
   const old=Object.keys(state.history).filter(id=>!inProgram.has(id)&&EX[id]&&(state.history[id]||[]).length);
   if(old.length){
@@ -2112,7 +2144,7 @@ renderHome = function(){
     box.className='day-card next';
     box.style.flexDirection='column';
     box.style.alignItems='stretch';
-    box.innerHTML=`<div class="day-title">Незавершене тренування: ${DAYS[s.dayKey].label}</div>
+    box.innerHTML=`<div class="day-title">Незавершене тренування: ${PROG()[s.dayKey].label}</div>
       <div class="day-desc">Всі відмічені підходи збережені.</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="big-cta" style="margin:0;flex:2" onclick="resumeSession()">Продовжити</button>
@@ -2202,6 +2234,8 @@ function mergeStates(a,b){
   out.lastSessionDate = (la>lb?la:lb) || null;
   out.streak = la>lb ? (A.streak||0) : lb>la ? (B.streak||0) : Math.max(A.streak||0,B.streak||0);
   out.savedAt=Math.max(A.savedAt||0,B.savedAt||0);
+  const newer=aNewer?A:B, older=aNewer?B:A;
+  if(newer.program||older.program) out.program = newer.program||older.program;
   // unfinished workout: from the newer copy, only if it is from today
   const act=(aNewer?A:B).activeSession;
   out.activeSession = act && act.date===todayStr() ? act : null;
@@ -2241,7 +2275,7 @@ async function syncNow(opts){
   try{
     for(let attempt=0; attempt<4; attempt++){
       const got=await syncFetch('GET');
-      if(got.status===401){ throw new Error('токен не підходить'); }
+      if(got.status===401){ throw new Error('сесія завершилась, увійди знову'); }
       if(got.status===429){ throw new Error('забагато спроб'); }
       if(got.status!==200 || !got.data) throw new Error('помилка сервера '+got.status);
       const remote=got.data.state;
@@ -2278,46 +2312,125 @@ function saveLocalOnly(){
   idbSet(STORE_KEY, json).catch(()=>{});
 }
 
-/* --- settings sheet --- */
+/* --- accounts: login, register, logout --- */
+let acModeNow='login';
+function acMode(m){
+  acModeNow=m;
+  document.getElementById('acTabLogin').classList.toggle('on',m==='login');
+  document.getElementById('acTabReg').classList.toggle('on',m==='register');
+  document.getElementById('acGo').textContent = m==='login'?'Увійти':'Створити акаунт';
+  document.getElementById('acPass').autocomplete = m==='login'?'current-password':'new-password';
+  acError('');
+}
+function acError(t){ const e=document.getElementById('acErr'); e.textContent=t||''; e.hidden=!t; }
+function serverUrlFromForm(){
+  const u=normUrl(document.getElementById('syncUrl').value);
+  return u && urlAllowed(u) ? u : '';
+}
+async function authCall(path, body){
+  const base=serverUrlFromForm() || (syncCfg&&syncCfg.url) || '';
+  if(!base) throw new Error('Вкажи адресу сервера (розділ «Сервер» нижче)');
+  const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),15000);
+  try{
+    const res=await fetch(base+path,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    let data=null; try{ data=await res.json(); }catch(e){}
+    return {status:res.status, data, base};
+  }finally{ clearTimeout(t); }
+}
+const AC_MSG={
+  'wrong login or password':'Невірний логін або пароль.',
+  'too many failed attempts, try later':'Забагато невдалих спроб. Спробуй за 15 хвилин.',
+  'username taken':'Цей логін зайнятий.',
+  'bad username':'Логін: 3-32 символи, латиниця, цифри, _ або -.',
+  'bad password':'Пароль має бути від 8 символів.',
+  'registration is closed':'Реєстрація на цьому сервері закрита.',
+  'user limit reached':'На сервері вже максимум користувачів.',
+  'too many registrations, try later':'Забагато реєстрацій, спробуй пізніше.'
+};
+async function submitAccount(){
+  const username=document.getElementById('acUser').value.trim().toLowerCase();
+  const password=document.getElementById('acPass').value;
+  if(!username || !password){ acError('Введи логін і пароль.'); return; }
+  const btn=document.getElementById('acGo'); btn.disabled=true; acError('');
+  try{
+    const r=await authCall(acModeNow==='login'?'/api/login':'/api/register',{username,password});
+    if(r.status!==200 || !r.data || !r.data.token){
+      acError((r.data&&AC_MSG[r.data.error]) || 'Не вдалося: помилка сервера '+r.status);
+      return;
+    }
+    await adoptAccount(r.base, r.data.token, r.data.username);
+    document.getElementById('acPass').value='';
+  }catch(e){
+    acError(e && e.name==='AbortError' ? 'Сервер не відповідає.' : (e&&e.message&&!(e instanceof TypeError)) ? e.message : 'Немає зв\'язку із сервером.');
+  }finally{ btn.disabled=false; }
+}
+async function adoptAccount(url, token, username){
+  saveSyncCfg({url, token, user:username});
+  try{ localStorage.removeItem('setflow.nologin'); }catch(e){}
+  syncStatus={state:'idle', at:0, msg:''};
+  await syncNow();
+  renderAccount(); renderStorageStatus(); renderHome();
+  if(syncStatus.state==='ok'){ showToast('Ти увійшов як '+username); prefetchPics(); closeSync(); }
+}
+async function saveTokenLogin(){
+  const url=serverUrlFromForm();
+  const token=document.getElementById('syncToken').value.trim();
+  if(!url || !token){ showToast('Заповни адресу і токен'); return; }
+  await adoptAccount(url, token, 'admin');
+}
+function skipLogin(){
+  try{ localStorage.setItem('setflow.nologin','1'); }catch(e){}
+  closeSync();
+}
+async function logoutAccount(){
+  if(!syncCfg) return;
+  await syncNow();                                     // last push before leaving
+  if(syncStatus.state!=='ok' &&
+     !confirm('Не вдалося синхронізувати. Якщо вийти, дані на телефоні буде видалено, і останні зміни можуть пропасти. Вийти?')) return;
+  try{ await fetch(syncCfg.url+'/api/logout',{method:'POST',headers:{'Authorization':'Bearer '+syncCfg.token}}); }catch(e){}
+  saveSyncCfg(null);
+  /* this phone no longer belongs to the account: wipe, so the next user starts clean */
+  state=emptyState(); _lastHash=null;
+  try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+  try{ await idbSet(STORE_KEY, JSON.stringify(state)); }catch(e){}
+  syncStatus={state:'off', at:0, msg:''};
+  renderAccount(); renderStorageStatus(); renderHome();
+  showToast('Ти вийшов з акаунта');
+  openSync();
+}
+
+/* --- account sheet --- */
 function openSync(){
   document.getElementById('syncUrl').value = syncCfg?syncCfg.url:'';
-  document.getElementById('syncToken').value = syncCfg?syncCfg.token:'';
-  document.getElementById('syncOff').hidden = !syncCfg;
-  renderSyncStatus();
+  document.getElementById('syncToken').value = '';
+  acMode('login');
+  renderAccount();
   document.getElementById('syncSheet').hidden=false;
 }
 function closeSync(){ document.getElementById('syncSheet').hidden=true; }
+function renderAccount(){
+  const inn=!!syncCfg;
+  document.getElementById('acIn').hidden=!inn;
+  document.getElementById('acOut').hidden=inn;
+  document.getElementById('acTitle').textContent = inn?'Акаунт':'Вхід';
+  document.getElementById('acMore').open = !inn && !document.getElementById('syncUrl').value;
+  if(inn) document.getElementById('acWho').textContent='Ти увійшов як '+(syncCfg.user||'admin')+'. Сервер: '+syncCfg.url.replace(/^https?:\/\//,'');
+  const b=document.getElementById('acctBtn');
+  if(b) b.textContent = inn ? (syncCfg.user||'admin') : 'Увійти';
+  renderSyncStatus();
+}
 function renderSyncStatus(){
   const el=document.getElementById('syncInfo');
   if(!el) return;
   const st=syncStatus;
-  let txt='Не підключено. Встав адресу сервера й токен.';
+  let txt='';
   if(syncCfg){
-    if(st.state==='ok') txt='Підключено. Остання синхронізація: '+new Date(st.at).toLocaleString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if(st.state==='ok') txt='Остання синхронізація: '+new Date(st.at).toLocaleString('uk-UA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     else if(st.state==='busy') txt='Синхронізую…';
     else if(st.state==='err') txt='Помилка: '+st.msg;
     else txt='Підключено.';
   }
   el.textContent=txt;
-}
-async function saveSyncSettings(){
-  const url=normUrl(document.getElementById('syncUrl').value);
-  const token=document.getElementById('syncToken').value.trim();
-  if(!url || !token){ showToast('Заповни адресу і токен'); return; }
-  if(!urlAllowed(url)){ showToast('Адреса має починатися з https://'); return; }
-  saveSyncCfg({url, token});
-  syncStatus={state:'idle', at:0, msg:''};
-  await syncNow();
-  renderStorageStatus();
-  if(syncStatus.state==='ok'){ showToast('Синхронізація працює'); prefetchPics(); }
-}
-function disconnectSync(){
-  saveSyncCfg(null);
-  syncStatus={state:'off', at:0, msg:''};
-  document.getElementById('syncUrl').value=''; document.getElementById('syncToken').value='';
-  document.getElementById('syncOff').hidden=true;
-  renderSyncStatus(); renderStorageStatus();
-  showToast('Синхронізацію вимкнено (дані на телефоні лишились)');
 }
 
 /* ---------- Backup: export / import ---------- */
@@ -2423,12 +2536,16 @@ renderHome();
   saveState(); // make sure both stores hold the same copy
   renderStorageStatus();
   readSyncLink();
+  renderAccount();
   syncNow();
+  /* first launch without an account: show the login panel once */
+  let skipped=false; try{ skipped=localStorage.getItem('setflow.nologin')==='1'; }catch(e){}
+  if(!syncCfg && !skipped) openSync();
 })();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncNow(); });
 window.addEventListener('online',()=>{ syncNow(); setTimeout(prefetchPics,2000); });
 setTimeout(prefetchPics,4000);
-window.addEventListener('hashchange',()=>{ readSyncLink(); syncNow(); });
+window.addEventListener('hashchange',()=>{ readSyncLink(); renderAccount(); syncNow(); });
 /* Flush on app close / switch (iOS may kill the page without warning) */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ if(session) saveSession(); else saveState(); } });
 window.addEventListener('pagehide',()=>{ if(session) saveSession(); else saveState(); });

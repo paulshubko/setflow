@@ -3,7 +3,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/paulshubko/setflow/main/server/install.sh | sudo bash
 #
-# Re-running is safe: it updates the code and keeps your data and token.
+# Re-running is safe: it updates the code and keeps your data, accounts and token.
+# Accounts: after installing run  sudo setflow-user admin  (sets the password).
 #   ... | sudo bash -s -- --rotate-token     generate a new token (old one stops working)
 set -euo pipefail
 
@@ -56,6 +57,22 @@ main() {
     umask 022
     NEWTOKEN=1
   fi
+
+  echo "==> setflow-user command (create accounts / change a password)"
+  cat > /usr/local/bin/setflow-user <<'EOS'
+#!/usr/bin/env bash
+# sudo setflow-user <username>   creates the account or changes its password
+set -euo pipefail
+[ "$(id -u)" -eq 0 ] || { echo "Run with sudo."; exit 1; }
+[ -n "${1:-}" ] || { echo "Usage: sudo setflow-user <username>"; exit 1; }
+read -r -s -p "Password for $1 (min 8 chars): " P; echo
+read -r -s -p "Repeat: " P2; echo
+[ "$P" = "$P2" ] || { echo "Passwords differ."; exit 1; }
+set -a; . /etc/setflow/env; set +a
+printf '%s' "$P" | runuser -u setflow -- env DATA_DIR="$DATA_DIR" node /opt/setflow/server.js --set-password "$1"
+systemctl restart setflow-sync
+EOS
+  chmod 755 /usr/local/bin/setflow-user
 
   echo "==> systemd service"
   cat > /etc/systemd/system/setflow-sync.service <<EOF
@@ -115,6 +132,8 @@ EOF
     echo "https://paulshubko.github.io/setflow/#sync=$PAYLOAD"
   fi
   echo "=========================================================="
-  echo "Data: $DATA/state.json, daily backups: $DATA/backups/"
+  echo "Accounts: $DATA/accounts.json, data per user: $DATA/users/<login>/state.json (daily backups inside)."
+  echo "Your old state.json is copied into the account \"admin\" on first start; the original file stays."
+  echo "Create or reset the owner account:  sudo setflow-user admin"
 }
 main "$@"
