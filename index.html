@@ -493,6 +493,7 @@ canvas{width:100%;display:block;}
 <body>
 
 <div class="toast" id="toast"></div>
+<div id="obOverlay" hidden></div>
 
 <!-- ============ HOME ============ -->
 <section class="screen active" id="screen-home">
@@ -518,6 +519,7 @@ canvas{width:100%;display:block;}
       Резервна копія
     </button>
   </div>
+  <button class="ghost-cta" style="margin-top:12px" onclick="openOnboarding(true)">Скласти нову програму</button>
 
 <div class="fb-sheet" id="backupSheet" hidden>
   <div class="fb-panel">
@@ -722,6 +724,8 @@ canvas{width:100%;display:block;}
   </div>
 </div>
 
+<script src="catalog.js"></script>
+<script src="onboarding.js"></script>
 <script>
 /* =====================================================================
    DATA — programs for Day A / B / C
@@ -1114,7 +1118,7 @@ function renderAltPanel(orig){
   if(!a){ panel.innerHTML='<div class="alt-card"><p class="alt-why">Для цієї вправи заміни немає.</p></div>'; return; }
   const swapped = effId(orig)===a.id;
   const showId = a.id, ex=EX[showId], q=EXQ[showId]||ex.name;
-  const scheme=`${ex.sets} підходи × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
+  const scheme=`${ex.sets} ${setsWord(ex.sets)} × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
   panel.innerHTML=`
     <div class="alt-card">
       <div class="alt-from">Якщо зайнято: ${EX[orig].name}</div>
@@ -1584,7 +1588,7 @@ function renderExercise(){
   document.getElementById('exTitle').textContent=ex.name;
   document.getElementById('exSuperset').textContent=findSuperset(orig).label + (id!==orig?' · заміна':'');
   renderAltPanel(orig);
-  document.getElementById('exScheme').textContent = `${ex.sets} підходи × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
+  document.getElementById('exScheme').textContent = `${ex.sets} ${setsWord(ex.sets)} × ${ex.repsHint}${ex.type!=='bw'&&ex.type!=='cardio'?' · крок ваги '+(ex.step||2.5)+' кг':''}`;
 
   document.getElementById('techSetup').innerHTML = ex.setup.map(s=>`<li>${s}</li>`).join('');
   document.getElementById('techSteps').innerHTML = ex.steps.map(s=>`<li>${s}</li>`).join('');
@@ -1606,6 +1610,13 @@ function renderExercise(){
   switchTab('do');
 }
 /* Starting weights from Pavlo's recorded sessions */
+/* Extra catalog exercises (catalog.js): techniques, swaps, search phrases and photos */
+Object.assign(EX, EX_EXTRA);
+Object.keys(ALT_EXTRA).forEach(k=>{ if(!ALT[k]) ALT[k]=ALT_EXTRA[k]; });
+Object.assign(EXQ, EXQ_EXTRA);
+Object.assign(PIC, PIC_EXTRA);
+PIC_APPROX_EXTRA.forEach(id=>PIC_APPROX.add(id));
+
 const START_W = {
   a1_goblet_squat:17.5, b1_rdl:15, core_pallof:10,
   a1_incline_press:12.5, a2_row:15, b1_shoulder_press:7.5, b2_lat_pulldown:40,
@@ -1614,6 +1625,7 @@ const START_W = {
   a_hip_thrust:30, b_chest_press:25, b_chest_row:30, b_shoulder_machine:15, c_gravitron:40
 };
 Object.entries(START_W).forEach(([id,w])=>{ if(EX[id]) EX[id].w=w; });
+function setsWord(n){ return n===1?'підхід' : (n>=2&&n<=4)?'підходи' : 'підходів'; }
 function defaultWeight(ex){
   if(ex.w) return ex.w;
   if(ex.type==='db') return ex.step*2;
@@ -2165,6 +2177,8 @@ function openFeedback(){
    Local data always works offline. When the server is reachable the app
    pulls, merges both copies (nothing is lost) and pushes the result.
 ===================================================================== */
+/* Server offered to everybody on the login panel (the owner's home server) */
+const DEFAULT_SERVER='https://macmini.tailf4703b.ts.net';
 const SYNC_KEY='setflow.sync';
 let syncCfg=loadSyncCfg();
 let syncStatus={state:syncCfg?'idle':'off', at:0, msg:''};
@@ -2236,6 +2250,7 @@ function mergeStates(a,b){
   out.savedAt=Math.max(A.savedAt||0,B.savedAt||0);
   const newer=aNewer?A:B, older=aNewer?B:A;
   if(newer.program||older.program) out.program = newer.program||older.program;
+  if(newer.profile||older.profile) out.profile = newer.profile||older.profile;
   // unfinished workout: from the newer copy, only if it is from today
   const act=(aNewer?A:B).activeSession;
   out.activeSession = act && act.date===todayStr() ? act : null;
@@ -2293,6 +2308,7 @@ async function syncNow(opts){
         if(document.getElementById('screen-home').classList.contains('active')) renderHome();
       }
       syncStatus={state:'ok', at:Date.now(), msg:''};
+      setTimeout(maybeOnboard,0);
       return;
     }
     throw new Error('сервер зайнятий');
@@ -2401,13 +2417,13 @@ async function logoutAccount(){
 
 /* --- account sheet --- */
 function openSync(){
-  document.getElementById('syncUrl').value = syncCfg?syncCfg.url:'';
+  document.getElementById('syncUrl').value = syncCfg?syncCfg.url:DEFAULT_SERVER;
   document.getElementById('syncToken').value = '';
   acMode('login');
   renderAccount();
   document.getElementById('syncSheet').hidden=false;
 }
-function closeSync(){ document.getElementById('syncSheet').hidden=true; }
+function closeSync(){ document.getElementById('syncSheet').hidden=true; setTimeout(maybeOnboard,0); }
 function renderAccount(){
   const inn=!!syncCfg;
   document.getElementById('acIn').hidden=!inn;
@@ -2537,10 +2553,10 @@ renderHome();
   renderStorageStatus();
   readSyncLink();
   renderAccount();
-  syncNow();
-  /* first launch without an account: show the login panel once */
+  await syncNow();
+  /* first launch without an account: login panel first, onboarding follows when it closes */
   let skipped=false; try{ skipped=localStorage.getItem('setflow.nologin')==='1'; }catch(e){}
-  if(!syncCfg && !skipped) openSync();
+  if(!syncCfg && !skipped) openSync(); else maybeOnboard();
 })();
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') syncNow(); });
 window.addEventListener('online',()=>{ syncNow(); setTimeout(prefetchPics,2000); });
