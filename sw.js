@@ -1,6 +1,6 @@
 /* SetFlow service worker: offline app shell + cached fonts.
    Bump VERSION on every release so phones pick up the new files. */
-const VERSION = 'setflow-v8';
+const VERSION = 'setflow-v9';
 /* Exercise photos and clips from the home server (paths /shed/img/ and /shed/anim/). Separate cache that survives releases,
    so the photos are not downloaded again after every app update. */
 const IMG_CACHE = 'setflow-pics-v1';

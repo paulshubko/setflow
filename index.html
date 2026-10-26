@@ -1442,7 +1442,8 @@ function fmtDate(d){
    SESSION FLOW
 ===================================================================== */
 function startDay(key){
-  session = { dayKey:key, exIndex:0, warmupDone:{}, setLog:{} };
+  session = { id:newWorkoutId(), dayKey:key, exIndex:0, warmupDone:{}, setLog:{} };
+  snapSession();
   const day=PROG()[key];
   document.getElementById('warmupTitle').textContent = day.label + ' · Розминка';
   document.getElementById('warmupSub').textContent = day.title;
@@ -1605,6 +1606,7 @@ function renderExercise(){
       reps: ex.repsDefault,
       feel:'ok', comment:'', done:false
     }));
+    session.setLog[id].forEach((s,i)=>{ _sessSnap[id+'|'+i]=setSig(s); });
   }
   renderSetCards(id);
   switchTab('do');
@@ -1704,7 +1706,7 @@ function buildSetCard(id,ex,set,i){
     </button>
   `;
 
-  setTimeout(()=>{ if(isWeighted) renderChips(id,i); renderTags(id,i); },0);
+  setTimeout(()=>{ if(!session || !document.getElementById(card.id)) return; if(isWeighted) renderChips(id,i); renderTags(id,i); },0);
   const cm=card.querySelector('.comment');
   cm.addEventListener('input',()=>{ set.comment=cm.value; saveSession(); });
 
@@ -1861,6 +1863,7 @@ goto=function(name){ if(name==='cooldown') renderCooldownScreenSetup(); _origGot
 function finishSession(){
   const day=PROG()[session.dayKey];
   const date=todayStr();
+  stampSession();
   let totalSets=0, totalVolume=0;
   Object.entries(session.setLog).forEach(([id,sets])=>{
     const ex=EX[id];
@@ -1877,6 +1880,8 @@ function finishSession(){
   state.lastSessionDate = date;
   state.lastDay[session.dayKey]=date;
   state.activeSession=null;
+  markWorkoutClosed(session.id);
+  session=null;   // otherwise the next app switch saves it back as an unfinished workout
   saveState();
   try{ if(wakeLock) wakeLock.release(); }catch(e){}
 
@@ -2130,20 +2135,136 @@ function showToast(msg){
 /* Keeps the workout in progress if iOS reloads the page after opening a video */
 function saveSession(){
   if(!session) return;
-  state.activeSession = Object.assign({}, session, {date: todayStr()});
+  if(!session.id) session.id=newWorkoutId();
+  if(stampSession()) session.u=Date.now();
+  const mine=Object.assign({}, session, {date: todayStr()});
+  const cur=state.activeSession;
+  // another tab or device may have logged sets of this same workout: keep both
+  state.activeSession = (cur && sameWorkout(cur,mine)) ? mergeSession(mine,cur) : mine;
   saveState();
+  adoptSession();
+}
+
+/* ---- One workout open in several tabs or devices ----
+   Every set carries t: when it was last changed. A tab stamps only the sets it really
+   changed (compared with what it last saw), and two copies of the same workout are merged
+   set by set. So a stale tab or device can no longer wipe sets logged somewhere else. */
+let _sessSnap={};   // 'exId|i' -> the set as this tab last saw it
+function newWorkoutId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function setSig(x){ if(!x) return 'null'; const c=Object.assign({},x); delete c.t; return JSON.stringify(c); }
+function snapSession(){
+  _sessSnap={};
+  if(!session) return;
+  Object.entries(session.setLog||{}).forEach(([id,arr])=>(arr||[]).forEach((x,i)=>{ _sessSnap[id+'|'+i]=setSig(x); }));
+  _sessSnap.__other=JSON.stringify([session.warmupDone||{}, session.cooldownDone||{}, session.alt||{}]);
+}
+function stampSession(){
+  if(!session) return false;
+  const now=Date.now(); let changed=false;
+  Object.entries(session.setLog||{}).forEach(([id,arr])=>(arr||[]).forEach((x,i)=>{
+    if(x && setSig(x)!==_sessSnap[id+'|'+i]){ x.t=now; changed=true; }
+  }));
+  if(JSON.stringify([session.warmupDone||{}, session.cooldownDone||{}, session.alt||{}])!==_sessSnap.__other) changed=true;
+  snapSession();
+  return changed;
+}
+function sameWorkout(a,b){
+  if(!a||!b) return false;
+  if(a.id&&b.id) return a.id===b.id;
+  return a.date===b.date && a.dayKey===b.dayKey;
+}
+function pickSet(x,y){
+  if(!x) return y; if(!y) return x;
+  const tx=x.t||0, ty=y.t||0;
+  if(tx!==ty) return tx>ty?x:y;
+  if(!!x.done!==!!y.done) return x.done?x:y;
+  return x;
+}
+function mergeSession(a,b){
+  const newer=(a.u||0)>=(b.u||0)?a:b;
+  const out=Object.assign({}, newer);
+  out.id=a.id||b.id;
+  out.setLog={};
+  Object.keys(Object.assign({}, a.setLog, b.setLog)).forEach(id=>{
+    const x=(a.setLog||{})[id]||[], y=(b.setLog||{})[id]||[];
+    out.setLog[id]=Array.from({length:Math.max(x.length,y.length)},(_,i)=>{ const p=pickSet(x[i],y[i]); return p?Object.assign({},p):null; });
+  });
+  ['warmupDone','cooldownDone'].forEach(k=>{
+    const m={}; [a[k]||{}, b[k]||{}].forEach(o=>Object.keys(o).forEach(i=>{ if(o[i]) m[i]=true; }));
+    out[k]=m;
+  });
+  out.u=Math.max(a.u||0, b.u||0);
+  return out;
+}
+function markWorkoutClosed(id){
+  if(!id) return;
+  const l=(state.doneIds||[]).filter(x=>x!==id); l.push(id);
+  state.doneIds=l.slice(-30);
+}
+/* After a sync or another tab's save: bring sets logged elsewhere into the workout on screen */
+function adoptSession(){
+  if(!session) return;
+  if(session.id && (state.doneIds||[]).includes(session.id)){
+    session=null;
+    if(!document.getElementById('screen-summary').classList.contains('active')){
+      goto('home'); showToast('Це тренування вже завершене в іншому вікні');
+    }
+    return;
+  }
+  const st=state.activeSession;
+  if(!st || !sameWorkout(st,session)) return;
+  let changed=false, altChanged=false;
+  Object.entries(st.setLog||{}).forEach(([id,arr])=>{
+    if(!session.setLog[id]){ session.setLog[id]=(arr||[]).map(x=>x?Object.assign({},x):null); changed=true; return; }
+    (arr||[]).forEach((x,i)=>{
+      const mine=session.setLog[id][i];
+      if(x && pickSet(mine,x)!==mine){
+        if(mine) Object.assign(mine,x); else session.setLog[id][i]=Object.assign({},x);
+        changed=true;
+      }
+    });
+  });
+  ['warmupDone','cooldownDone'].forEach(k=>{
+    const m=st[k]||{}; if(!session[k]) session[k]={};
+    Object.keys(m).forEach(i=>{ if(m[i] && !session[k][i]){ session[k][i]=true; changed=true; } });
+  });
+  if((st.u||0)>(session.u||0) && JSON.stringify(st.alt||{})!==JSON.stringify(session.alt||{})){
+    session.alt=Object.assign({}, st.alt); changed=altChanged=true;
+  }
+  if((st.u||0)>(session.u||0)) session.u=st.u;
+  if(!changed) return;
+  snapSession();
+  refreshSessionScreens(altChanged);
+}
+function refreshSessionScreens(altChanged){
+  const act=document.querySelector('.screen.active');
+  const name=act?act.id.replace('screen-',''):'';
+  if(name==='exercise'){
+    if(altChanged){ const t=currentTab; renderExercise(); switchTab(t); return; }
+    const f=document.activeElement, fid=f&&f.id, pos=f&&f.selectionStart;
+    renderSetCards(effId(currentExId()));
+    if(fid){ const el=document.getElementById(fid); if(el){ el.focus(); try{ el.setSelectionRange(pos,pos); }catch(e){} } }
+  } else if(name==='list'){
+    buildExerciseList(); allExIds().forEach(markRowComplete);
+  } else if(name==='warmup'){
+    renderChecklist(document.getElementById('warmupList'), PROG()[session.dayKey].warmup, session.warmupDone);
+  } else if(name==='cooldown'){
+    renderCooldownScreenSetup();
+  }
 }
 function resumeSession(){
   const s=state.activeSession;
   if(!s) return;
-  session = s;
+  session = JSON.parse(JSON.stringify(s));
+  snapSession();
   buildExerciseList();
   allExIds().forEach(markRowComplete);
   requestWakeLock();
   goto('list');
 }
 function discardSession(){
-  state.activeSession=null; saveState(); session=null; renderHome();
+  markWorkoutClosed((session&&session.id) || (state.activeSession&&state.activeSession.id));
+  state.activeSession=null; session=null; saveState(); renderHome();
 }
 const _renderHomeOrig = renderHome;
 renderHome = function(){
@@ -2251,9 +2372,19 @@ function mergeStates(a,b){
   const newer=aNewer?A:B, older=aNewer?B:A;
   if(newer.program||older.program) out.program = newer.program||older.program;
   if(newer.profile||older.profile) out.profile = newer.profile||older.profile;
-  // unfinished workout: from the newer copy, only if it is from today
-  const act=(aNewer?A:B).activeSession;
-  out.activeSession = act && act.date===todayStr() ? act : null;
+  // workouts finished or discarded anywhere stay closed everywhere
+  const closed=[...new Set([...(A.doneIds||[]), ...(B.doneIds||[])])].slice(-30);
+  if(closed.length) out.doneIds=closed;
+  // unfinished workout: only from today and not closed; the same workout on both sides is merged set by set
+  const live=x=> x && x.date===todayStr() && !(x.id && closed.includes(x.id)) ? x : null;
+  const wa=live(A.activeSession), wb=live(B.activeSession);
+  if(wa && wb) out.activeSession = sameWorkout(wa,wb) ? mergeSession(wa,wb) : (aNewer?wa:wb);
+  else {
+    const one=wa||wb;
+    const oneNewer = one===wa ? aNewer : !aNewer;
+    // without an id (saved by an older app version) keep the old rule: the newer copy decides
+    out.activeSession = one && (one.id || oneNewer) ? one : null;
+  }
   return out;
 }
 function contentKey(s){
@@ -2294,6 +2425,7 @@ async function syncNow(opts){
       if(got.status===429){ throw new Error('забагато спроб'); }
       if(got.status!==200 || !got.data) throw new Error('помилка сервера '+got.status);
       const remote=got.data.state;
+      const before=contentKey(state);
       const merged = (opts.overwrite || !remote) ? Object.assign(emptyState(), state) : mergeStates(state, remote);
       let pushed=true;
       if(remote && !opts.overwrite && contentKey(merged)===contentKey(remote)) pushed=false;
@@ -2302,9 +2434,12 @@ async function syncNow(opts){
         if(put.status===409) continue;            // somebody wrote in between: pull again
         if(put.status!==200) throw new Error('помилка запису '+put.status);
       }
+      // the user changed something while we were talking to the server: merge again, never drop it
+      if(contentKey(state)!==before){ opts=Object.assign({}, opts, {overwrite:false}); continue; }
       if(contentKey(merged)!==contentKey(state)){
         state=merged;
         saveLocalOnly();
+        adoptSession();
         if(document.getElementById('screen-home').classList.contains('active')) renderHome();
       }
       syncStatus={state:'ok', at:Date.now(), msg:''};
@@ -2565,6 +2700,18 @@ window.addEventListener('hashchange',()=>{ readSyncLink(); renderAccount(); sync
 /* Flush on app close / switch (iOS may kill the page without warning) */
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ if(session) saveSession(); else saveState(); } });
 window.addEventListener('pagehide',()=>{ if(session) saveSession(); else saveState(); });
+/* Another SetFlow tab on this device saved: merge its copy in (no write back, so no ping-pong) */
+window.addEventListener('storage',e=>{
+  if(e.key!==STORE_KEY || !e.newValue) return;
+  try{
+    const merged=mergeStates(state, JSON.parse(e.newValue));
+    if(contentKey(merged)===contentKey(state)) return;
+    state=merged;
+    _lastHash=stateHash();
+    adoptSession();
+    if(document.getElementById('screen-home').classList.contains('active')) renderHome();
+  }catch(err){}
+});
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
