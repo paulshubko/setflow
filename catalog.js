@@ -211,6 +211,8 @@ const CAT = (function(){
   add('c_plank','core_anti','core',[],1);
   add('c_superman','back_ext','back',[],1);
   add('c_bosu','balance','core',[],1,[],['surf']);
+  add('c_band_pullup','pull_v','back',['bar','band'],2);
+  add('c_bosu_squat','balance','legs',[],1,['knee'],['surf']);
   add('c_burpee','cardio','full',[],3,['knee','back','wrist'],['fatloss','explosive']);
   add('alt_smith_squat','squat','legs',['machine'],1,['knee']);
   add('alt_suitcase_carry','carry','core',['db'],1);

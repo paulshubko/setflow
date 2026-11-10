@@ -329,6 +329,11 @@ button{font-family:inherit;}
 
 .weight-value{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-bottom:10px;}
 .weight-value .n{font-family:'Archivo',sans-serif;font-size:40px;font-weight:800;}
+.weight-value .w-input{width:4.2ch;min-width:3ch;text-align:center;background:transparent;border:0;border-bottom:2px dashed var(--border);color:inherit;padding:0 2px;font-family:'Archivo',sans-serif;font-size:40px;font-weight:800;line-height:1.1;outline:none;}
+.weight-value .w-input:focus{border-bottom-color:currentColor;}
+.var-row{flex-wrap:wrap;overflow:visible;justify-content:flex-start;}
+.w-note{font-weight:500;text-transform:none;letter-spacing:0;opacity:.8;}
+.w-tip{font-size:11px;color:var(--text-faint);text-align:center;margin:-4px 0 8px;}
 .weight-value .u{font-size:14px;color:var(--text-dim);font-weight:700;}
 
 .stepper-row{display:flex;align-items:center;gap:10px;}
@@ -794,9 +799,9 @@ const DAYS = {
     ],
     supersets:[
       {label:'A · Поп-ап на суші', ids:['c_popup']},
-      {label:'B · Ноги + тяга власного тіла', ids:['b1_leg_press','c_gravitron']},
+      {label:'B · Ноги + тяга власного тіла', ids:['b1_leg_press','c_band_pullup']},
       {label:'C · Хват і корпус', ids:['d1_farmers_walk']},
-      {label:'D · Коло: баланс і кор', ids:['c_plank','c_superman','c_bosu']},
+      {label:'D · Коло: баланс і кор', ids:['c_plank','c_superman','c_bosu_squat']},
       {label:'E · Фінішер: берпі + ейр-байк', ids:['c_burpee','cardio_airbike']}
     ]
   }
@@ -820,8 +825,8 @@ const EX = {
     setup:['Лежачи на спині, руки вгору, коліна зігнуті під 90° над тазом.','Поперек притиснутий до підлоги весь підхід.'],
     steps:['Видих, повільно випрямляй протилежну руку й ногу до підлоги.','Повернення на вдиху, поперек не відривається.','Чергуй сторони.'],
     errors:['Поперек відривається від підлоги — це сигнал зменшити амплітуду.','Рух занадто швидкий, кор не встигає працювати.']},
-  c1_split_squat:{name:'Болгарський спліт-присід', type:'bw', sets:3, repsDefault:6, repsHint:'5–6 на ногу',
-    setup:['Спиною до лави (~20–25 см), підйом стопи задньої ноги на лаву.','Передня стопа на відстані одного кроку від лави.','Пальці рук легко на стійці для балансу, без опори вагою.','Починай з лівої ноги ззаду (слабший бік) і на правій роби стільки ж повторів.'],
+  c1_split_squat:{name:'Болгарський спліт-присід', type:'db', step:2, w:6, wNote:'вага однієї гантелі', sets:3, repsDefault:6, repsHint:'5–6 на ногу',
+    setup:['Гантелі в обох руках, руки вільно вздовж тіла. Вказуй вагу однієї гантелі.','Спиною до лави (~20–25 см), підйом стопи задньої ноги на лаву.','Передня стопа на відстані одного кроку від лави.','Починай з лівої ноги ззаду (слабший бік) і на правій роби стільки ж повторів.'],
     steps:['Корпус трохи нахилений вперед (~10–15°).','Опускайся, доки заднє коліно майже торкається підлоги, таз не завалюється вбік.','Підйом через п\'яту передньої ноги, зупиняйся задовго до втрати балансу.'],
     errors:['Занадто далекий крок тягне пах, занадто близький — навантажує коліно.','Таз хитається вбік — ознака, що стабілізація ще не готова до ваги.']},
   c2_glute_bridge:{name:'Одноногий сідничний місток', type:'bw', sets:3, repsDefault:9, repsHint:'8–10',
@@ -891,8 +896,8 @@ const EX = {
     setup:['Лягай на бік, лікоть точно під плечем, передпліччя на підлозі перпендикулярно тілу.','Ноги прямі, стопи одна на одній (легший варіант: нижнє коліно на підлозі).'],
     steps:['Видих, підніми таз, щоб тіло стало прямою лінією від голови до п\'ят.','Тримай таз високо, сідниці й прес напружені, дихай рівно.','Після часу опустись, зміни бік. Починай з лівого боку.'],
     errors:['Таз провисає до підлоги.','Таз відходить назад, тіло складається в кутик.','Плече тягнеться до вуха замість того, щоб відштовхувати підлогу.']},
-  a_hip_thrust:{name:'Hip thrust у тренажері', type:'machine', step:5, sets:3, repsDefault:11, repsHint:'10–12',
-    setup:['Сідай на сидіння, верх лопаток упирається в спинку-подушку.','Ремінь або валик лежить на згині стегон (на тазових кістках), не на животі.','Стопи на платформі на ширині таза, так щоб у верхній точці гомілки були вертикальні.'],
+  a_hip_thrust:{name:'Hip thrust у тренажері', type:'machine', step:2.5, plates:true, wNote:'тільки додані диски, без ваги тренажера', sets:3, repsDefault:11, repsHint:'10–12',
+    setup:['Вага тут це тільки диски, які ти додав. Порожній тренажер = 0 кг.','Сідай на сидіння, верх лопаток упирається в спинку-подушку.','Ремінь або валик лежить на згині стегон (на тазових кістках), не на животі.','Стопи на платформі на ширині таза, так щоб у верхній точці гомілки були вертикальні.'],
     steps:['Підборіддя трохи до грудей, погляд вперед, а не в стелю.','Видих, штовхни п\'ятами й підніми таз до прямої лінії плечі, таз, коліна.','Вгорі затримка 1 с і сильно стисни сідниці, таз злегка підкручений.','Повільно опусти таз на 2–3 рахунки, не кидаючи вагу.'],
     errors:['Прогин у попереку вгорі замість роботи сідниць (ребра задираються).','Стопи надто близько: навантаження йде в квадрицепс.','Голова закинута назад: поперек прогинається разом із шиєю.']},
   a_hyperext:{name:'Гіперекстензія', type:'bw', sets:3, repsDefault:12, repsHint:'12',
@@ -903,16 +908,16 @@ const EX = {
     setup:['Упор лежачи, долоні трохи ширше плечей, тіло пряма лінія.','Легший варіант: від лави або на колінах.'],
     steps:['Контрольовано опустись грудьми до підлоги.','Різко, з максимальною швидкістю відштовхнись, щоб долоні відірвались від підлоги.','М\'яко приземлись на злегка зігнуті руки і одразу переходь у наступне повторення.','Якщо швидкість падає, зупиняй підхід.'],
     errors:['Таз провисає при відштовху.','Жорстке приземлення на прямі лікті.','Робити до відмови: це вправа на швидкість, а не на втому.']},
-  b_chest_press:{name:'Жим від грудей у тренажері', type:'machine', step:5, sets:3, repsDefault:10, repsHint:'10',
-    setup:['Висоту сидіння став так, щоб ручки були на рівні середини грудей.','Спина й лопатки притиснуті до спинки, стопи на підлозі.'],
+  b_chest_press:{name:'Жим від грудей у тренажері', type:'machine', step:2.5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Як впізнати: сидиш спиною до спинки, ручки перед грудьми, ти їх ШТОВХАЄШ від себе. Якщо ручки треба тягнути до себе, це тренажер для тяги, не цей.','Висоту сидіння став так, щоб ручки були на рівні середини грудей.','Спина й лопатки притиснуті до спинки, стопи на підлозі.'],
     steps:['Видих, вижми ручки вперед до майже прямих рук, не блокуючи лікті.','Повільно поверни ручки назад, поки не відчуєш легкий розтяг грудей.'],
     errors:['Плечі піднімаються до вух.','Лопатки відриваються від спинки в кінці жиму.']},
-  b_chest_row:{name:'Тяга в тренажері з упором грудьми', type:'machine', step:5, sets:3, repsDefault:10, repsHint:'10',
-    setup:['Груди щільно на подушці, висоту сидіння підбери так, щоб ручки були на рівні грудей.','Стопи на підлозі або на підставках.'],
+  b_chest_row:{name:'Тяга в тренажері з упором грудьми', type:'machine', step:2.5, plates:true, wNote:'тільки диски, без грифа', sets:3, repsDefault:10, repsHint:'10',
+    setup:['Як впізнати: груди лежать на подушці, ручки перед тобою, ти їх ТЯГНЕШ до себе. Підходить і Т-гриф з упором грудьми, де лежиш обличчям донизу.','Рух іде до себе, а не вгору: якщо штовхаєш ручки вгору, це вже жим на плечі.','На Т-грифі записуй тільки вагу дисків, вагу самого грифа не рахуй.','Груди щільно на подушці, висоту сидіння підбери так, щоб ручки були на рівні грудей.'],
     steps:['Тягни ручки до себе, лікті йдуть назад уздовж тіла.','У кінці зведи лопатки, пауза 1 с.','Повільно відпускай до повного розтягу рук.'],
     errors:['Груди відриваються від подушки, щоб допомогти корпусом.','Тяга самими руками без зведення лопаток.']},
-  b_shoulder_machine:{name:'Жим на плечі в тренажері', type:'machine', step:5, sets:3, repsDefault:10, repsHint:'10',
-    setup:['Висоту сидіння став так, щоб ручки були на рівні плечей.','Спина повністю на спинці, прес напружений.'],
+  b_shoulder_machine:{name:'Жим на плечі в тренажері', type:'machine', step:2.5, sets:3, repsDefault:10, repsHint:'10',
+    setup:['Як впізнати: сидиш вертикально, ручки біля плечей, штовхаєш їх ВГОРУ над головою.','Висоту сидіння став так, щоб ручки були на рівні плечей.','Спина повністю на спинці, прес напружений.'],
     steps:['Видих, вижми ручки вгору до майже прямих рук.','Повільно опусти до рівня плечей.'],
     errors:['Поперек відривається від спинки, прогин.','Надто важка вага, і жим іде ривком.']},
   b_hyperext_light:{name:'Гіперекстензія (легко)', type:'bw', sets:2, repsDefault:12, repsHint:'12',
@@ -939,6 +944,14 @@ const EX = {
     setup:['BOSU куполом вгору (або балансувальна подушка), поруч стійка, щоб підстрахуватись.','Стопи на ширині серф-стійки, коліна м\'які.'],
     steps:['Стань у серф-стійку: коліна зігнуті, руки спокійно перед собою.','Тримай баланс, корпус нерухомий, працюють стопи й стегна.','Коли легко: повільні міні-присіди або повороти корпусу.'],
     errors:['Прямі ноги: баланс тримається тільки ними.','Руки махають: тримай їх низько перед собою.','Погляд у ноги замість вперед.']},
+  c_band_pullup:{name:'Підтягування з гумкою', type:'bw', variants:['жовта','червона','синя','зелена','чорна'], variantLabel:'Гумка', variantDefault:'синя', sets:3, repsDefault:6, repsHint:'5–8',
+    setup:['Гумку закинь на перекладину петлею, один кінець протягни через інший і затягни.','Стопу або коліно постав у нижню петлю. Що товща гумка, то легше.','Хват трохи ширше плечей, долоні від себе.'],
+    steps:['З повного вису зведи лопатки вниз і назад.','Тягнись грудьми до перекладини, лікті йдуть вниз до ребер.','Повільно опускайся до прямих рук, гумка не має підкидати тебе вгору.'],
+    errors:['Половинна амплітуда без повного розгину внизу.','Розкачування ногами.','Прогрес це тонша гумка або більше повторень.']},
+  c_bosu_squat:{name:'Присід на BOSU', type:'bw', sets:3, repsDefault:10, repsHint:'10–12',
+    setup:['BOSU куполом вгору, поруч стійка, щоб підстрахуватись.','Стопи на ширині серф-стійки, коліна м\'які, руки перед собою.'],
+    steps:['Повільно присядь до паралелі або трохи вище, як у низькій серф-стійці.','Внизу коротка пауза, корпус рівний, погляд вперед.','Встань, не втрачаючи баланс. Коли легко: стопи ширше, як на дошці, або повільніший темп.'],
+    errors:['Коліна завалюються всередину.','Ривки замість контрольованого руху.','Погляд у ноги замість вперед.']},
   c_burpee:{name:'Берпі', type:'bw', sets:3, repsDefault:6, repsHint:'6',
     setup:['Стоячи, стопи на ширині плечей, місце для упору лежачи.'],
     steps:['Присядь, долоні на підлогу.','Відстрибни ногами назад в упор лежачи, тіло пряме.','Застрибни ногами назад до рук одним рухом, як у поп-апі.','Встань і зроби невеликий стрибок вгору.'],
@@ -1036,6 +1049,8 @@ const EXQ = {
   c_plank:'forearm plank proper form',
   c_superman:'superman exercise lower back',
   c_bosu:'bosu ball balance surf stance',
+  c_band_pullup:'band assisted pull up form',
+  c_bosu_squat:'bosu ball squat form',
   c_burpee:'burpee proper form',
   alt_smith_squat:'smith machine squat form',
   alt_suitcase_carry:'suitcase carry one dumbbell',
@@ -1069,7 +1084,7 @@ const ALT = {
   b_plyo_pushup:{id:'c2_pushup', why:'Той самий жим від підлоги: груди, передня дельта, трицепс. Менше вибуховості, але виконуй підйом швидко.'},
   b_chest_press:{id:'a1_incline_press', why:'Той самий жимовий рух: груди й трицепс. Замість тренажера гантелі на лаві, дещо більший акцент на верх грудей.'},
   b_chest_row:{id:'a2_row', why:'Та сама горизонтальна тяга: широчайші, ромбоподібні, задня дельта. Упор коліном на лаву замінює опору грудьми.'},
-  b2_lat_pulldown:{id:'c_gravitron', why:'Та сама вертикальна тяга до грудей: широчайші й біцепс. Гравітрон допомагає противагою, тож чим більша вага, тим легше.'},
+  b2_lat_pulldown:{id:'c_band_pullup', why:'Та сама вертикальна тяга до грудей: широчайші й біцепс. Гумка допомагає, тож що товща гумка, то легше.'},
   c1_face_pull:{id:'alt_reverse_fly', why:'Ті самі м\'язи: задні дельти й середина спини, зведення лопаток. Замість блоку гантелі в нахилі.'},
   b_shoulder_machine:{id:'b1_shoulder_press', why:'Той самий жим угору: дельти й трицепс. Замість тренажера гантелі сидячи.'},
   d1_triceps_pushdown:{id:'alt_overhead_triceps', why:'Те саме розгинання ліктів: трицепс. Замість блоку одна гантель над головою, з акцентом на довгу головку.'},
@@ -1081,6 +1096,8 @@ const ALT = {
   d1_farmers_walk:{id:'alt_dead_hang', why:'Той самий акцент на хват і плечовий пояс. Замість гантелей вис на турніку, кор працює слабше.'},
   c_plank:{id:'b2_dead_bug', why:'Та сама робота кору проти прогину в попереку. Dead bug додає рух рук і ніг, місця потребує так само мало.'},
   c_superman:{id:'alt_bird_dog', why:'Ті самі м\'язи: розгиначі спини й сідниці у статиці, як у позиції гребка. Інший рух на килимку.'},
+  c_band_pullup:{id:'b2_lat_pulldown', why:'Та сама вертикальна тяга: широчайші й біцепс. Замість перекладини з гумкою верхній блок.'},
+  c_bosu_squat:{id:'a1_goblet_squat', why:'Той самий присід у низькій стійці. Без BOSU, зате з гантеллю, баланс менше.'},
   c_bosu:{id:'alt_single_leg_balance', why:'Той самий баланс стопи й стегна, серф-стійка. Замість BOSU подушка або килимок, на одній нозі.'},
   c_burpee:{id:'alt_jump_squat', why:'Та сама вибухова робота ніг і стрибок угору. Без упору лежачи, простіше за технікою.'},
   cardio_airbike:{id:'alt_rowing', why:'Ті самі інтервали 20/70 с із навантаженням на ноги й спину. Гребля ще й близька до гребка на дошці.'}
@@ -1205,6 +1222,7 @@ const PIC = {
   b_chest_row:'Leverage_Iso_Row',
   b_shoulder_machine:'Leverage_Shoulder_Press',
   c_gravitron:'Band_Assisted_Pull-Up',
+  c_band_pullup:'Band_Assisted_Pull-Up',
   c_plank:'Plank',
   c_superman:'Superman',
   alt_smith_squat:'Smith_Machine_Squat',
@@ -1231,6 +1249,7 @@ const ANIM = {
   b2_lat_pulldown:['reverse-grip-lat-pulldown',1,341,480],
   d1_triceps_pushdown:['single-arm-tricep-pushdown',1,330,480],
   c_gravitron:['pull-up',1,292,480],
+  c_band_pullup:['pull-up',1,292,480],
   alt_reverse_lunge:['barbell-reverse-lunge',1,379,480],
   a2_row:['one-arm-kettlebell-row',1,480,433]
 };
@@ -1290,7 +1309,18 @@ let state = loadState();
    On start both are read and the most recently saved copy wins. */
 /* The program (days, warm-ups, exercises) belongs to the account: state.program.
    Without one the built-in DAYS template is used (this is the original A/B/C program). */
-function PROG(){ return (state && state.program && Object.keys(state.program).length) ? state.program : DAYS; }
+function PROG(){
+  if(state && state.program && Object.keys(state.program).length){ migrateProgram(state.program); return state.program; }
+  return DAYS;
+}
+/* Exercises replaced after Pavlo's workout notes (Nov 2026): no gravitron in the gym, the BOSU
+   hold became squats on BOSU. Stored programs get the same swap; old history stays as it is. */
+const RENAMED_EX={c_gravitron:'c_band_pullup', c_bosu:'c_bosu_squat'};
+function migrateProgram(prog){
+  Object.values(prog).forEach(day=>(day&&day.supersets||[]).forEach(ss=>{
+    if(Array.isArray(ss.ids)) ss.ids=ss.ids.map(x=>RENAMED_EX[x]||x);
+  }));
+}
 function emptyState(){ return { weights:{}, lastDay:{}, history:{}, streak:0, lastSessionDate:null, savedAt:0 }; }
 function loadState(){
   try{
@@ -1534,8 +1564,8 @@ function lastWeightLabel(id){
   const w=state.weights[id];
   if(ex.type==='bw') return /^[0-9–\s]+$/.test(ex.repsHint) ? ex.repsHint+' повт.' : ex.repsHint;
   if(ex.type==='cardio') return ex.repsHint;
-  const v = w || ex.w;
-  if(!v) return 'вага не задана';
+  const v = w ?? ex.w;
+  if(v==null) return 'вага не задана';
   return v+' кг';
 }
 function renderDots(){
@@ -1601,9 +1631,10 @@ function renderExercise(){
 
   if(!session.setLog[id]){
     session.setLog[id] = new Array(ex.sets).fill(null).map(()=>({
-      weight: ex.type==='bw'?null:(state.weights[id]||defaultWeight(ex)),
+      weight: ex.type==='bw'?null:(state.weights[id]??defaultWeight(ex)),
       reps: ex.repsDefault,
-      feel:'ok', comment:'', done:false
+      feel:'ok', comment:'', done:false,
+      ...(ex.variants?{variant:lastVariant(id)}:{})
     }));
   }
   renderSetCards(id);
@@ -1633,6 +1664,13 @@ function defaultWeight(ex){
   if(ex.type==='machine') return 20;
   return 0;
 }
+/* Exercises with a choice instead of kg (e.g. which band): last one used, else the default */
+function lastVariant(id){
+  const ex=EX[id], hist=state.history[id]||[];
+  for(let k=hist.length-1;k>=0;k--){ const v=(hist[k].sets.find(s=>s.variant)||{}).variant; if(v) return v; }
+  return ex.variantDefault||ex.variants[0];
+}
+function fmtW(w){ return w%1===0?String(w):w.toFixed(1); }
 function switchTab(t){
   currentTab=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
@@ -1670,13 +1708,19 @@ function buildSetCard(id,ex,set,i){
     <div class="stack">
       ${isWeighted?`
       <div>
-        <span class="field-label">Вага</span>
-        <div class="weight-value"><span class="n num" id="wval-${id}-${i}">${set.weight}</span><span class="u">кг</span></div>
+        <span class="field-label">Вага${ex.wNote?` <span class="w-note">· ${ex.wNote}</span>`:''}</span>
+        <div class="weight-value"><input class="n num w-input" id="wval-${id}-${i}" type="text" inputmode="decimal" value="${fmtW(set.weight)}" aria-label="Вага, кг" onfocus="this.select()" onchange="typeWeight('${id}',${i},this)"><span class="u">кг</span></div>
+        <div class="w-tip">Торкнись числа, щоб ввести точну вагу</div>
         <div class="stepper-row">
           <button class="step-btn" onclick="adjWeight('${id}',${i},-${step})">−</button>
           <div class="chip-row" id="chips-${id}-${i}"></div>
           <button class="step-btn" onclick="adjWeight('${id}',${i},${step})">+</button>
         </div>
+      </div>`:''}
+      ${ex.variants?`
+      <div>
+        <span class="field-label">${ex.variantLabel||'Варіант'}</span>
+        <div class="chip-row var-row" id="var-${id}-${i}">${ex.variants.map(v=>`<button class="wchip${v===set.variant?' active':''}" data-v="${v}" onclick="setVariant('${id}',${i},'${v}')">${v}</button>`).join('')}</div>
       </div>`:''}
       <div>
         <span class="field-label">${ex.repsUnit==='м'?'Метри':ex.repsUnit==='с'?('Секунди'+(ex.sides?' на сторону':'')):'Повторення'}</span>
@@ -1717,15 +1761,16 @@ function renderChips(id,i){
   const wrap=document.getElementById(`chips-${id}-${i}`);
   if(!wrap) return;
   const step=ex.step||2.5;
-  const base = state.weights[id] || set.weight || defaultWeight(ex);
+  const base = state.weights[id] ?? set.weight ?? defaultWeight(ex);
+  const minW = ex.plates ? 0 : step;
   const opts=[];
-  for(let d=-2;d<=2;d++){ opts.push(Math.max(step, base + d*step)); }
+  for(let d=-2;d<=2;d++){ opts.push(Math.max(minW, Math.round((base + d*step)*10)/10)); }
   const uniq=[...new Set(opts)].sort((a,b)=>a-b);
   wrap.innerHTML='';
   uniq.forEach(w=>{
     const chip=document.createElement('button');
     chip.className='wchip'+(w===set.weight?' active':'')+(w===base?' last':'');
-    chip.textContent = (w%1===0?w:w.toFixed(1)) + (w===base?' ★':'');
+    chip.textContent = fmtW(w) + (w===base?' ★':'');
     chip.onclick=()=>{ setWeight(id,i,w); };
     wrap.appendChild(chip);
   });
@@ -1733,8 +1778,24 @@ function renderChips(id,i){
 function setWeight(id,i,w){
   const set=session.setLog[id][i];
   set.weight = Math.round(w*10)/10;
-  document.getElementById(`wval-${id}-${i}`).textContent=set.weight;
+  const el=document.getElementById(`wval-${id}-${i}`);
+  if(el) el.value=fmtW(set.weight);
   renderChips(id,i);
+  saveSession();
+}
+/* exact weight typed in (machines often have 27.5, 33 and so on) */
+function typeWeight(id,i,el){
+  const v=parseFloat(String(el.value).replace(',','.'));
+  if(!isFinite(v) || v<0 || v>500){ el.value=fmtW(session.setLog[id][i].weight||0); showToast('Введи вагу числом, наприклад 27.5'); return; }
+  setWeight(id,i,v);
+}
+function setVariant(id,i,v){
+  const set=session.setLog[id][i];
+  set.variant=v;
+  document.querySelectorAll(`#var-${id}-${i} .wchip`).forEach(b=>b.classList.toggle('active', b.dataset.v===v));
+  // the same band is the usual choice for the following sets
+  session.setLog[id].forEach((s,k)=>{ if(k>i && !s.done){ s.variant=v;
+    document.querySelectorAll(`#var-${id}-${k} .wchip`).forEach(b=>b.classList.toggle('active', b.dataset.v===v)); } });
   saveSession();
 }
 function adjWeight(id,i,delta){
@@ -1789,7 +1850,7 @@ function toggleDone(id,i){
   card.classList.toggle('done',set.done);
   document.getElementById(`donebtn-${id}-${i}`).innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> ${set.done?'Підхід готовий':'Готово'}`;
   if(set.done){
-    if(ex.type!=='bw') state.weights[id]=set.weight;
+    if(ex.type!=='bw' && set.weight!=null) state.weights[id]=set.weight;
     saveState();
     if(i<ex.sets-1) startRestTimer(60,'до наступного підходу');
   }
@@ -1867,7 +1928,7 @@ function finishSession(){
     const doneSets = sets.filter(s=>s&&s.done);
     if(!doneSets.length) return;
     if(!state.history[id]) state.history[id]=[];
-    state.history[id].push({ date, sets: doneSets.map(s=>({weight:s.weight,reps:s.reps,feel:s.feel,comment:s.comment})) });
+    state.history[id].push({ date, sets: doneSets.map(s=>Object.assign({weight:s.weight,reps:s.reps,feel:s.feel,comment:s.comment}, s.variant?{variant:s.variant}:{})) });
     totalSets += doneSets.length;
     doneSets.forEach(s=>{ if(s.weight) totalVolume += s.weight*s.reps; });
   });
@@ -1992,7 +2053,7 @@ function renderChartAndLog(id){
     const bestSet = h.sets.reduce((a,b)=> (b.weight||0)>=(a.weight||0)?b:a, h.sets[0]);
     const item=document.createElement('div');
     item.className='log-item';
-    item.innerHTML=`<div class="row1"><span>${fmtDate(h.date)}</span><b>${bestSet.weight?bestSet.weight+' кг × '+bestSet.reps:bestSet.reps+' повт.'}</b></div>
+    item.innerHTML=`<div class="row1"><span>${fmtDate(h.date)}</span><b>${bestSet.weight?bestSet.weight+' кг × '+bestSet.reps:bestSet.reps+' повт.'}${bestSet.variant?' · '+bestSet.variant+' гумка':''}</b></div>
       ${comments.length?`<div class="cm">${comments.join(' · ')}</div>`:''}`;
     logWrap.appendChild(item);
   });
@@ -2094,7 +2155,7 @@ function fmtExportSession(id){
   const ex=EX[id];
   const unit = ex.repsUnit==='с'?'с':ex.repsUnit==='м'?'м':'';
   return h=>{
-    const sets=h.sets.map(s=>(s.weight?`${s.weight}×${s.reps}`:`${s.reps}${unit}`)+(s.feel==='hard'?'!':s.feel==='easy'?'↓':'')).join(', ');
+    const sets=h.sets.map(s=>(s.weight?`${s.weight}×${s.reps}`:`${s.reps}${unit}`)+(s.variant?` (${s.variant} гумка)`:'')+(s.feel==='hard'?'!':s.feel==='easy'?'↓':'')).join(', ');
     const comments=h.sets.map(s=>s.comment).filter(Boolean);
     return `${fmtDate(h.date)}: ${sets}${comments.length?' ('+comments.join('; ')+')':''}`;
   };
