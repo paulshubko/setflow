@@ -130,6 +130,9 @@ button{font-family:inherit;}
 }
 .topbar h1{font-size:19px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .topbar .sub{font-size:12px;color:var(--text-dim);font-weight:600;}
+.wk-clock{margin-left:auto;flex:none;font-family:'Archivo',sans-serif;font-weight:800;font-size:15px;
+  padding:7px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);}
+.wk-clock:empty{display:none;}
 
 /* ---------- Screens ---------- */
 .screen{display:none;padding-bottom:24px;}
@@ -426,7 +429,7 @@ textarea.comment::placeholder{color:var(--text-faint);}
 .summary-hero .check svg{width:32px;height:32px;stroke-width:2.5;}
 .summary-hero h2{font-size:22px;}
 .summary-hero p{font-size:13.5px;color:var(--text-dim);margin-top:6px;}
-.summary-stats{display:flex;gap:10px;margin-top:20px;}
+.summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
 .stat-tile{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-m);padding:14px;text-align:center;}
 .stat-tile .n{font-family:'Archivo',sans-serif;font-size:22px;font-weight:800;}
 .stat-tile .l{font-size:11px;color:var(--text-dim);font-weight:700;margin-top:2px;}
@@ -589,6 +592,7 @@ canvas{width:100%;display:block;}
   <div class="topbar">
     <button class="back-btn" onclick="goto('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div><h1 id="warmupTitle" style="font-size:17px;">Розминка</h1><div class="sub" id="warmupSub"></div></div>
+    <div class="wk-clock num" aria-label="Час тренування"></div>
   </div>
   <div class="check-list" id="warmupList"></div>
   <button class="big-cta" id="warmupNext" onclick="finishWarmup()">До вправ</button>
@@ -599,6 +603,7 @@ canvas{width:100%;display:block;}
   <div class="topbar">
     <button class="back-btn" onclick="goto('home')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div><h1 id="listTitle" style="font-size:17px;">День</h1><div class="sub" id="listSub"></div></div>
+    <div class="wk-clock num" aria-label="Час тренування"></div>
   </div>
   <div class="progress-dots" id="listDots"></div>
   <div class="ex-list" id="exList"></div>
@@ -610,6 +615,7 @@ canvas{width:100%;display:block;}
   <div class="topbar">
     <button class="back-btn" onclick="goto('list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div><h1 id="exTitle" style="font-size:17px;">Вправа</h1><div class="sub" id="exSuperset"></div></div>
+    <div class="wk-clock num" aria-label="Час тренування"></div>
   </div>
 
   <div class="ex-hero">
@@ -650,6 +656,7 @@ canvas{width:100%;display:block;}
   <div class="topbar">
     <button class="back-btn" onclick="goto('list')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div><h1 style="font-size:17px;">Заминка</h1><div class="sub">5–7 хв розтяжки</div></div>
+    <div class="wk-clock num" aria-label="Час тренування"></div>
   </div>
   <div class="check-list" id="cooldownList"></div>
   <button class="big-cta" onclick="finishSession()">Завершити тренування</button>
@@ -663,6 +670,7 @@ canvas{width:100%;display:block;}
     <p id="summaryDay"></p>
   </div>
   <div class="summary-stats">
+    <div class="stat-tile"><div class="n" id="sumTime">0:00</div><div class="l">Тривалість</div></div>
     <div class="stat-tile"><div class="n" id="sumSets">0</div><div class="l">Підходів</div></div>
     <div class="stat-tile"><div class="n" id="sumVolume">0</div><div class="l">Тонаж, кг</div></div>
     <div class="stat-tile"><div class="n" id="sumStreak">0</div><div class="l">Тренувань поспіль</div></div>
@@ -1321,7 +1329,7 @@ function migrateProgram(prog){
     if(Array.isArray(ss.ids)) ss.ids=ss.ids.map(x=>RENAMED_EX[x]||x);
   }));
 }
-function emptyState(){ return { weights:{}, lastDay:{}, history:{}, streak:0, lastSessionDate:null, savedAt:0 }; }
+function emptyState(){ return { weights:{}, lastDay:{}, history:{}, workouts:[], streak:0, lastSessionDate:null, savedAt:0 }; }
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -1472,7 +1480,7 @@ function fmtDate(d){
    SESSION FLOW
 ===================================================================== */
 function startDay(key){
-  session = { dayKey:key, exIndex:0, warmupDone:{}, setLog:{} };
+  session = { dayKey:key, exIndex:0, warmupDone:{}, setLog:{}, startedAt:Date.now() };
   const day=PROG()[key];
   document.getElementById('warmupTitle').textContent = day.label + ' · Розминка';
   document.getElementById('warmupSub').textContent = day.title;
@@ -1480,6 +1488,7 @@ function startDay(key){
   renderChecklist(document.getElementById('warmupList'), day.warmup, session.warmupDone);
   requestWakeLock();
   saveSession();
+  startWorkoutClock();
   goto('warmup');
 }
 
@@ -1937,16 +1946,47 @@ function finishSession(){
   state.streak = wasRecent ? (state.streak||0)+1 : 1;
   state.lastSessionDate = date;
   state.lastDay[session.dayKey]=date;
+  const durSec = session.startedAt ? Math.max(0, Math.round((Date.now()-session.startedAt)/1000)) : null;
+  if(durSec!==null){
+    if(!Array.isArray(state.workouts)) state.workouts=[];
+    state.workouts.push({ date, day:session.dayKey, start:session.startedAt, sec:durSec });
+  }
+  stopWorkoutClock();
   state.activeSession=null;
   saveState();
   try{ if(wakeLock) wakeLock.release(); }catch(e){}
 
   document.getElementById('summaryDay').textContent = `${day.label} · ${day.title} завершено ${fmtDate(date)}`;
+  document.getElementById('sumTime').textContent = durSec!==null ? fmtDuration(durSec) : '—';
   document.getElementById('sumSets').textContent = totalSets;
   document.getElementById('sumVolume').textContent = Math.round(totalVolume);
   document.getElementById('sumStreak').textContent = state.streak;
   goto('summary');
 }
+
+/* =====================================================================
+   WORKOUT CLOCK: runs from "start workout" to "finish workout".
+   Based on session.startedAt, so it keeps counting through reloads and backgrounding.
+===================================================================== */
+let workoutClockInterval=null;
+function fmtDuration(sec){
+  const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60;
+  return h ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+function tickWorkoutClock(){
+  const txt = session && session.startedAt ? fmtDuration(Math.max(0, Math.floor((Date.now()-session.startedAt)/1000))) : '';
+  document.querySelectorAll('.wk-clock').forEach(el=>{ el.textContent=txt; });
+}
+function startWorkoutClock(){
+  clearInterval(workoutClockInterval);
+  tickWorkoutClock();
+  workoutClockInterval=setInterval(tickWorkoutClock, 1000);
+}
+function stopWorkoutClock(){
+  clearInterval(workoutClockInterval); workoutClockInterval=null;
+  document.querySelectorAll('.wk-clock').forEach(el=>{ el.textContent=''; });
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && workoutClockInterval) tickWorkoutClock(); });
 
 /* =====================================================================
    REST TIMER
@@ -2201,9 +2241,11 @@ function resumeSession(){
   buildExerciseList();
   allExIds().forEach(markRowComplete);
   requestWakeLock();
+  startWorkoutClock();
   goto('list');
 }
 function discardSession(){
+  stopWorkoutClock();
   state.activeSession=null; saveState(); session=null; renderHome();
 }
 const _renderHomeOrig = renderHome;
@@ -2307,6 +2349,9 @@ function mergeStates(a,b){
   });
   const la=A.lastSessionDate||'', lb=B.lastSessionDate||'';
   out.lastSessionDate = (la>lb?la:lb) || null;
+  // workout durations: union by start time
+  const wk={}; [].concat(A.workouts||[], B.workouts||[]).forEach(w=>{ if(w&&w.start) wk[w.start]=w; });
+  out.workouts=Object.values(wk).sort((x,y)=>x.start-y.start);
   out.streak = la>lb ? (A.streak||0) : lb>la ? (B.streak||0) : Math.max(A.streak||0,B.streak||0);
   out.savedAt=Math.max(A.savedAt||0,B.savedAt||0);
   const newer=aNewer?A:B, older=aNewer?B:A;
