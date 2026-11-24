@@ -761,11 +761,11 @@ const DAYS = {
       {t:'Спокійна ходьба',d:'1 хв повільної ходьби, щоб дихання й пульс прийшли в норму.'}
     ],
     supersets:[
-      {label:'A · Присід + бічна стабілізація', ids:['a1_goblet_squat','a_side_plank']},
-      {label:'B · Сідниці + антиекстензія кора', ids:['a_hip_thrust','b2_dead_bug']},
-      {label:'C · Задня поверхня стегна', ids:['b1_rdl']},
-      {label:'D · Одностороння нога (починай з лівої ззаду)', ids:['c1_split_squat']},
-      {label:'E · Поперек і сідниці', ids:['a_hyperext']}
+      {label:'A · Станова тяга (першою, поки поперек свіжий, вага легка)', ids:['g_deadlift']},
+      {label:'B · Присід + бічна стабілізація', ids:['a1_goblet_squat','a_side_plank']},
+      {label:'C · Сідниці + антиекстензія кора', ids:['a_hip_thrust','b2_dead_bug']},
+      {label:'D · Одностороння нога + антиротація (починай з лівої ззаду)', ids:['c1_split_squat','core_pallof']},
+      {label:'E · Поперек і сідниці (легко)', ids:['b_hyperext_light']}
     ]
   },
   B: {
@@ -788,7 +788,8 @@ const DAYS = {
       {label:'B · Груди + спина', ids:['b_chest_press','b_chest_row']},
       {label:'C · Гребок: широчайші + задня дельта', ids:['b2_lat_pulldown','c1_face_pull']},
       {label:'D · Плечі + трицепс', ids:['b_shoulder_machine','d1_triceps_pushdown']},
-      {label:'E · Фінішер на поперек', ids:['b_hyperext_light']}
+      {label:'E · Спина однією рукою', ids:['a2_row']},
+      {label:'F · Фінішер: поперек і розвантаження хребта', ids:['b_hyperext_light','alt_dead_hang']}
     ]
   },
   C: {
@@ -808,9 +809,9 @@ const DAYS = {
     supersets:[
       {label:'A · Поп-ап на суші', ids:['c_popup']},
       {label:'B · Ноги + тяга власного тіла', ids:['b1_leg_press','c_band_pullup']},
-      {label:'C · Хват і корпус', ids:['d1_farmers_walk']},
+      {label:'C · Хват і корпус', ids:['d1_farmers_walk','alt_suitcase_carry']},
       {label:'D · Коло: баланс і кор', ids:['c_plank','c_superman','c_bosu_squat']},
-      {label:'E · Фінішер: берпі + ейр-байк', ids:['c_burpee','cardio_airbike']}
+      {label:'E · Фінішер: берпі', ids:['c_burpee']}
     ]
   }
 };
@@ -1328,6 +1329,14 @@ function migrateProgram(prog){
   Object.values(prog).forEach(day=>(day&&day.supersets||[]).forEach(ss=>{
     if(Array.isArray(ss.ids)) ss.ids=ss.ids.map(x=>RENAMED_EX[x]||x);
   }));
+  /* One-time program update (Nov 2026): deadlift in, air bike out, back-friendly additions.
+     Rewrites the supersets of days A/B/C in a stored program once; flag state.progRev. */
+  if(state && !(state.progRev>=2) && prog.A && prog.B && prog.C
+     && Array.isArray(prog.A.supersets) && Array.isArray(prog.B.supersets) && Array.isArray(prog.C.supersets)){
+    ['A','B','C'].forEach(k=>{ prog[k].supersets = JSON.parse(JSON.stringify(DAYS[k].supersets)); });
+    state.progRev = 2;
+    setTimeout(()=>{ try{ saveState(); }catch(e){} },0);
+  }
 }
 function emptyState(){ return { weights:{}, lastDay:{}, history:{}, workouts:[], streak:0, lastSessionDate:null, savedAt:0 }; }
 function loadState(){
