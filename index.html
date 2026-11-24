@@ -773,7 +773,6 @@ const DAYS = {
       {t:'Кардіо активація',d:'3–4 хв велотренажер, легкий темп, плечі розслаблені.'},
       {t:'Кет-кова',d:'8–10 повільних циклів на четвереньках для рухливості грудного відділу.'},
       {t:'Кола руками',d:'10 кіл вперед і 10 назад кожною рукою, амплітуда поступово більша.'},
-      {t:'Тяга гумки до грудей (band pull-apart)',d:'2×12 повільних повторень, лопатки зводяться в кінці руху. Активує задні дельти й спину.'},
       {t:'Віджимання від підлоги розминочні',d:'1×6–8 у спокійному темпі, щоб розігріти груди й плечі перед вибуховими віджиманнями.'}
     ],
     cooldown:[
@@ -1328,6 +1327,8 @@ function migrateProgram(prog){
   /* No calm-walk cool-down item: the walk from the gym to the locker room already does it. */
   Object.values(prog).forEach(day=>{
     if(day && Array.isArray(day.cooldown)) day.cooldown = day.cooldown.filter(x=>!(x && x.t==='Спокійна ходьба'));
+    /* No resistance band in the gym: drop the band pull-apart warm-up item. */
+    if(day && Array.isArray(day.warmup)) day.warmup = day.warmup.filter(x=>!(x && /band pull-apart/.test(x.t||'')));
   });
   Object.values(prog).forEach(day=>(day&&day.supersets||[]).forEach(ss=>{
     if(Array.isArray(ss.ids)) ss.ids=ss.ids.map(x=>RENAMED_EX[x]||x);
