@@ -758,7 +758,6 @@ const DAYS = {
       {t:'Розтяжка згиначів стегна (пріоритет)',d:'На коліні, таз підкручений, сідниця задньої ноги напружена. 2×30–40 с на кожну сторону.'},
       {t:'Розтяжка задньої поверхні стегна',d:'Лежачи, рушник під стопою, нога піднята й випрямлена. 2×30 с на кожну ногу.'},
       {t:'Розтяжка сідниці (фігура 4)',d:'Лежачи на спині, гомілка однієї ноги на стегні іншої, підтягуєш коліно до себе. 2×30 с на сторону.'},
-      {t:'Спокійна ходьба',d:'1 хв повільної ходьби, щоб дихання й пульс прийшли в норму.'}
     ],
     supersets:[
       {label:'A · Станова тяга (першою, поки поперек свіжий, вага легка)', ids:['g_deadlift']},
@@ -1326,6 +1325,10 @@ function PROG(){
    hold became squats on BOSU. Stored programs get the same swap; old history stays as it is. */
 const RENAMED_EX={c_gravitron:'c_band_pullup', c_bosu:'c_bosu_squat'};
 function migrateProgram(prog){
+  /* No calm-walk cool-down item: the walk from the gym to the locker room already does it. */
+  Object.values(prog).forEach(day=>{
+    if(day && Array.isArray(day.cooldown)) day.cooldown = day.cooldown.filter(x=>!(x && x.t==='Спокійна ходьба'));
+  });
   Object.values(prog).forEach(day=>(day&&day.supersets||[]).forEach(ss=>{
     if(Array.isArray(ss.ids)) ss.ids=ss.ids.map(x=>RENAMED_EX[x]||x);
   }));

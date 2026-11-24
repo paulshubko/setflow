@@ -119,7 +119,7 @@ function buildWarmup(region, ids, a){
   return out.slice(0,6);
 }
 function buildCooldown(region, a){
-  let out = region==='lower' ? [CD.hipflex, CD.hamstring, CD.fig4, CD.walk]
+  let out = region==='lower' ? [CD.hipflex, CD.hamstring, CD.fig4]
           : region==='upper' ? [CD.chest, CD.lat, CD.child]
           : [CD.hipflex, CD.fig4, CD.child, CD.chest];
   if(a.life==='sit' && !out.includes(CD.hipflex)) out = [CD.hipflex].concat(out).slice(0,4);
