@@ -187,6 +187,10 @@ const CAT = (function(){
   add('c1_split_squat','lunge','legs',[],2,['knee']);
   add('c2_glute_bridge','glute','glutes',[],1);
   add('core_pallof','core_anti','core',['cable'],1);
+  add('a_weighted_dead_bug','core_anti','core',['db'],2);
+  add('a_copenhagen_plank','core_anti','core',['bench'],2,['knee']);
+  add('c_rkc_plank','core_anti','core',[],2);
+  add('c_halfkneel_pallof','core_anti','core',['cable'],2,[],['surf']);
   add('a1_incline_press','push_h','chest',['db','bench'],1,['shoulder']);
   add('a2_row','pull_h','back',['db','bench'],1);
   add('b1_shoulder_press','push_v','shoulders',['db','bench'],1,['shoulder']);

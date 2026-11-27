@@ -752,6 +752,7 @@ const DAYS = {
       {t:'Мах ногою вперед-назад',d:'Тримайся за опору, 10–12 махів на кожну ногу, амплітуда без болю в попереку.'},
       {t:'Відведення стегна лежачи (активація)',d:'Лежачи на боці, 1×15 на кожну ногу. Таз не відкочується назад, носок дивиться вперед. Будить сідниці перед hip thrust.'},
       {t:'Сідничний місток лежачи',d:'Лежачи, коліна зігнуті, підйом тазу стисканням сідниць. 12–15 повторень.'},
+      {t:'Стійка на одній нозі з дотиками',d:'30 с на кожну ногу. Коліно опорної ноги м\'яке, таз рівний. Вільною ногою по черзі торкайся підлоги вперед, убік і назад. Втрачаєш рівновагу: торкнись стіни пальцем і продовжуй.'},
       {t:'Розминочний підхід гоблет-присіду',d:'Порожні руки або легка вага, 8 повторень, щоб відчути патерн руху перед робочими підходами.'}
     ],
     cooldown:[
@@ -761,8 +762,8 @@ const DAYS = {
     ],
     supersets:[
       {label:'A · Станова тяга (першою, поки поперек свіжий, вага легка)', ids:['g_deadlift']},
-      {label:'B · Присід + бічна стабілізація', ids:['a1_goblet_squat','a_side_plank']},
-      {label:'C · Сідниці + антиекстензія кора', ids:['a_hip_thrust','b2_dead_bug']},
+      {label:'B · Присід + бічна стабілізація (привідні м\'язи)', ids:['a1_goblet_squat','a_copenhagen_plank']},
+      {label:'C · Сідниці + антиекстензія кора з вагою', ids:['a_hip_thrust','a_weighted_dead_bug']},
       {label:'D · Одностороння нога + антиротація (починай з лівої ззаду)', ids:['c1_split_squat','core_pallof']},
       {label:'E · Поперек і сідниці (легко)', ids:['b_hyperext_light']}
     ]
@@ -796,19 +797,20 @@ const DAYS = {
       {t:'Кардіо активація',d:'3–4 хв легкого кардіо на вибір, готуємо тіло до комбінованого навантаження.'},
       {t:'Кет-кова',d:'8 циклів для хребта.'},
       {t:'Мах ногою і кола руками',d:'По 10 на кожну сторону, загальна рухливість перед вправами на все тіло.'},
-      {t:'Глибокий випад з поворотом',d:'5 на кожну ногу: крок вперед у випад, руки на підлогу, поворот корпусу до передньої ноги. Відкриває стегна для поп-апу.'}
+      {t:'Глибокий випад з поворотом',d:'5 на кожну ногу: крок вперед у випад, руки на підлогу, поворот корпусу до передньої ноги. Відкриває стегна для поп-апу.'},
+      {t:'Стійка на одній нозі з дотиками',d:'30 с на кожну ногу. Коліно опорної ноги м\'яке, таз рівний. Вільною ногою по черзі торкайся підлоги вперед, убік і назад. Втрачаєш рівновагу: торкнись стіни пальцем і продовжуй.'}
     ],
     cooldown:[
       {t:'Розтяжка згиначів стегна (пріоритет)',d:'2×30–40 с на сторону, підкручений таз, сідниця задньої ноги напружена.'},
       {t:'Розтяжка сідниці (фігура 4)',d:'2×30 с на сторону лежачи на спині.'},
-      {t:'Поза дитини',d:'30–40 с, руки витягнуті вперед, таз до п\'ят. Розвантажує поперек після супермена й фермерської.'},
+      {t:'Поза дитини',d:'30–40 с, руки витягнуті вперед, таз до п\'ят. Розвантажує поперек після фермерської й кору.'},
       {t:'Розтяжка грудних у дверях',d:'20–30 с на сторону.'}
     ],
     supersets:[
       {label:'A · Поп-ап на суші', ids:['c_popup']},
       {label:'B · Ноги + тяга власного тіла', ids:['b1_leg_press','c_band_pullup']},
       {label:'C · Хват і корпус', ids:['d1_farmers_walk','alt_suitcase_carry']},
-      {label:'D · Коло: баланс і кор', ids:['c_plank','c_superman','c_bosu_squat']},
+      {label:'D · Коло: одна нога + кор', ids:['h_step_up','c_rkc_plank','c_halfkneel_pallof']},
       {label:'E · Фінішер: берпі', ids:['c_burpee']}
     ]
   }
@@ -898,6 +900,23 @@ const EX = {
     setup:['Сідло на рівні тазової кістки, коліно злегка зігнуте в нижній точці педалі.','Хват за вертикальні ручки на рівні грудей, нейтральний.'],
     steps:['1 хв спокійно на вході, дихання рівне.','20 с інтенсивно: ноги й руки працюють разом, інтенсивність 7–8 з 10.','70 с легко, відновлення.','Повтори цикл 3 рази після берпі, усі інтервали приблизно однакові за зусиллям.','1 хв спокійно на виході.'],
     errors:['Перший інтервал на максимум — видихаєшся до кінця.','Горбишся і висиш на кермі всією вагою.','Сідло занизько — коліна підлітають до грудей.']},
+  /* ---- Harder core + single-leg work (late Nov 2026) ---- */
+  a_weighted_dead_bug:{name:'Dead bug з гантеллю', type:'db', step:1, w:4, wNote:'одна гантель на прямих руках', sets:3, repsDefault:8, repsHint:'8 на сторону · опуск 4 с',
+    setup:['Лежачи на спині, коліна зігнуті під 90° над тазом.','Гантель тримай обома руками на прямих руках над грудьми.','Видихни, ребра вниз: поперек притиснутий до підлоги весь підхід.'],
+    steps:['Повільно, за 4 с, опускай одну ногу до підлоги, руки з гантеллю нерухомі.','Нога зависає над підлогою на 1 с, поперек не відривається.','Поверни ногу й зміни сторону. Коли легко: опускай ще й протилежну руку з гантеллю за голову.'],
+    errors:['Поперек відривається: зменш вагу або амплітуду ноги.','Швидкий рух, нога падає замість контрольованого опуску.','Затримка дихання: видихай на опусканні.']},
+  a_copenhagen_plank:{name:'Копенгагенська планка (коротка)', type:'bw', sets:3, repsDefault:15, repsHint:'15–20 с на сторону', repsUnit:'с', sides:true,
+    setup:['Лягай на бік біля лави, лікоть під плечем.','Коліно ВЕРХНЬОЇ ноги поклади на лаву, нижня нога під лавою.','Важчий варіант пізніше: на лаві не коліно, а внутрішній бік стопи.'],
+    steps:['Видих, піднімай таз, тиснучи коліном верхньої ноги в лаву.','Тіло пряма лінія від голови до коліна, таз не відходить назад.','Коли стабільно: нижню ногу підтягни до лави й тримай у повітрі.'],
+    errors:['Таз провисає до підлоги.','Біль у паху або коліні: зупинись, повернись до звичайної бічної планки.','Плече тягнеться до вуха.']},
+  c_rkc_plank:{name:'RKC-планка (максимальна напруга)', type:'bw', sets:3, repsDefault:15, repsHint:'10–20 с', repsUnit:'с',
+    setup:['Передпліччя на підлозі, лікті трохи ближче до голови, ніж у звичайній планці.','Кулаки стиснуті, ноги прямі, стопи разом.'],
+    steps:['Стисни сідниці й стегна, підкрути таз.','Тягни лікті до носків, а носки до ліктів, ніби хочеш скласти тіло: нікуди не рухаєшся, тільки напруга.','Дихай короткими видихами. 10–20 с і все: якщо можеш довше, напруга замала.'],
+    errors:['Поперек провисає.','Тримаєш як звичайну планку: довго й без напруги.','Затримка дихання.']},
+  c_halfkneel_pallof:{name:'Pallof press на одному коліні', type:'cable', step:2.5, sets:3, repsDefault:10, repsHint:'10 на сторону',
+    setup:['Блок на рівні грудей. Стань боком до нього на одне коліно, як у випаді.','На підлозі ВНУТРІШНЄ коліно (ближче до блоку), передня нога зовнішня.','Коліно, стегно й плече на одній лінії, сідниця задньої ноги напружена.'],
+    steps:['Рукоять біля грудей, видих, виштовхни руки вперед.','Затримка 2 с, корпус не повертається до блоку і не хитається.','Повільно поверни руки. Потім розвернись і зроби іншу сторону.'],
+    errors:['Таз хитається: вага завелика або стійка завузька.','Поперек прогинається: підкрути таз і напруж сідницю.','Корпус прокручується до блоку.']},
   /* ---- Surf-focused program (October 2026) ---- */
   a_side_plank:{name:'Бічна планка', type:'bw', sets:3, repsDefault:25, repsHint:'20–30 с на сторону', repsUnit:'с', sides:true,
     setup:['Лягай на бік, лікоть точно під плечем, передпліччя на підлозі перпендикулярно тілу.','Ноги прямі, стопи одна на одній (легший варіант: нижнє коліно на підлозі).'],
@@ -1027,6 +1046,10 @@ const EXQ = {
   a2_hip_abduction:'side lying hip abduction exercise',
   b1_rdl:'dumbbell romanian deadlift form',
   b2_dead_bug:'dead bug exercise core',
+  a_weighted_dead_bug:'weighted dead bug dumbbell',
+  a_copenhagen_plank:'short lever copenhagen plank knee',
+  c_rkc_plank:'rkc plank technique',
+  c_halfkneel_pallof:'half kneeling pallof press cable',
   c1_split_squat:'bulgarian split squat beginner balance support',
   c2_glute_bridge:'single leg glute bridge',
   core_pallof:'pallof press cable',
@@ -1079,6 +1102,10 @@ const EXQ = {
    Same movement pattern and muscle groups, different machine or tool.
 ===================================================================== */
 const ALT = {
+  a_weighted_dead_bug:{id:'b2_dead_bug', why:'Той самий рух без гантелі. Бери, якщо поперек відривається від підлоги.'},
+  a_copenhagen_plank:{id:'a_side_plank', why:'Та сама бічна стабілізація, але без лави і без навантаження на привідні м\'язи.'},
+  c_rkc_plank:{id:'c_plank', why:'Та сама робота кору проти прогину, але довше й з меншою напругою.'},
+  c_halfkneel_pallof:{id:'core_pallof', why:'Той самий антиротаційний прес стоячи, баланс простіший.'},
   /* Day A */
   a1_goblet_squat:{id:'alt_smith_squat', why:'Та сама механіка присіду: навантаження на квадрицепси й сідниці. Машина замість вільної ваги, тож гантелі не потрібні.'},
   a_side_plank:{id:'alt_suitcase_carry', why:'Той самий принцип: бічні м\'язи корпусу не дають тулубу нахилятись убік. Замість статичної планки це ходьба з гантеллю в одній руці.'},
@@ -1169,6 +1196,7 @@ const ITEMQ = {
   'Dead bug розминочний':{q:'dead bug exercise'},
   'Розминочний підхід гоблет-присіду':{q:'goblet squat proper form'},
   'Кола руками':{q:'arm circles warm up'},
+  'Стійка на одній нозі з дотиками':{q:'single leg balance star reach', sec:30, sides:2},
   'Розтяжка грудних у дверях':{q:'doorway chest stretch', sec:25, sides:2},
   'Тяга гумки до грудей (band pull-apart)':{q:'band pull apart'},
   'Розминочний підхід жиму':{q:'incline dumbbell press 30 degree form'},
@@ -1205,6 +1233,9 @@ const PIC = {
   a2_hip_abduction:'Side_Leg_Raises',
   b1_rdl:'Stiff-Legged_Dumbbell_Deadlift',
   b2_dead_bug:'Dead_Bug',
+  a_weighted_dead_bug:'Dead_Bug',
+  c_rkc_plank:'Plank',
+  c_halfkneel_pallof:'Pallof_Press',
   d2_dead_bug:'Dead_Bug',
   c1_split_squat:'Split_Squat_with_Dumbbells',
   c2_glute_bridge:'Single_Leg_Glute_Bridge',
@@ -1243,7 +1274,7 @@ const PIC = {
   alt_rowing:'Rowing_Stationary'
 };
 /* approximate matches: same movement, but equipment or variant may differ from the gym */
-const PIC_APPROX = new Set(['a2_hip_abduction','c1_split_squat','a_hip_thrust','b_chest_row','c_gravitron','alt_suitcase_carry','alt_hip_thrust_bench']);
+const PIC_APPROX = new Set(['a_weighted_dead_bug','c_halfkneel_pallof','a2_hip_abduction','c1_split_squat','a_hip_thrust','b_chest_row','c_gravitron','alt_suitcase_carry','alt_hip_thrust_bench']);
 function shedRoot(){ return syncCfg && syncCfg.url ? syncCfg.url.replace(/\/+$/,'')+'/shed/' : ''; }
 function picBase(){ const r=shedRoot(); return r ? r+'img/' : ''; }
 function picUrl(id,n){ return picBase()+encodeURIComponent(PIC[id])+'/'+n+'.jpg'; }
@@ -1335,6 +1366,19 @@ function migrateProgram(prog){
   }));
   /* One-time program update (Nov 2026): deadlift in, air bike out, back-friendly additions.
      Rewrites the supersets of days A/B/C in a stored program once; flag state.progRev. */
+  /* Rev 3 (late Nov 2026): harder core (weighted dead bug, Copenhagen, RKC, half-kneeling Pallof),
+     step-ups instead of BOSU squats, single-leg balance drill in the warm-ups of A and C. */
+  if(state && !(state.progRev>=3) && prog.A && prog.B && prog.C
+     && Array.isArray(prog.A.supersets) && Array.isArray(prog.B.supersets) && Array.isArray(prog.C.supersets)){
+    ['A','B','C'].forEach(k=>{ prog[k].supersets = JSON.parse(JSON.stringify(DAYS[k].supersets)); });
+    ['A','C'].forEach(k=>{
+      const w = prog[k].warmup;
+      const item = DAYS[k].warmup.find(x=>x.t==='Стійка на одній нозі з дотиками');
+      if(Array.isArray(w) && item && !w.some(x=>x && x.t===item.t)) w.splice(Math.max(0,w.length-1),0,{...item});
+    });
+    state.progRev = 3;
+    setTimeout(()=>{ try{ saveState(); }catch(e){} },0);
+  }
   if(state && !(state.progRev>=2) && prog.A && prog.B && prog.C
      && Array.isArray(prog.A.supersets) && Array.isArray(prog.B.supersets) && Array.isArray(prog.C.supersets)){
     ['A','B','C'].forEach(k=>{ prog[k].supersets = JSON.parse(JSON.stringify(DAYS[k].supersets)); });
@@ -1671,7 +1715,7 @@ Object.assign(PIC, PIC_EXTRA);
 PIC_APPROX_EXTRA.forEach(id=>PIC_APPROX.add(id));
 
 const START_W = {
-  a1_goblet_squat:17.5, b1_rdl:15, core_pallof:10,
+  a1_goblet_squat:17.5, b1_rdl:15, core_pallof:10, c_halfkneel_pallof:7.5,
   a1_incline_press:12.5, a2_row:15, b1_shoulder_press:7.5, b2_lat_pulldown:40,
   c1_face_pull:15, c2_bicep_curl:7.5, d1_triceps_pushdown:25,
   b1_leg_press:55, c1_seated_row:35, d1_farmers_walk:24,
